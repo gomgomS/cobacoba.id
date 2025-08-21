@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} — Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(1200px 600px at 20% -10%, #1b2440 0%, #0f1224 50%, #0b0d1a 100%);
+            color: #fff;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Particle Background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(143, 122, 255, 0.6);
+            border-radius: 50%;
+            animation: float 8s infinite linear;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 12s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 15s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 10s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 6s; animation-duration: 18s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 8s; animation-duration: 14s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 10s; animation-duration: 16s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 12s; animation-duration: 11s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 14s; animation-duration: 13s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 16s; animation-duration: 17s; }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .splash {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            animation: fadeInUp 1.2s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bubble {
+            position: fixed;
+            bottom: clamp(15px, 2vh, 25px);
+            right: clamp(20px, 3vw, 40px);
+            padding: clamp(12px, 2vw, 20px) clamp(18px, 3vw, 32px);
+            border-radius: 999px;
+            font-size: clamp(20px, 4vw, 64px);
+            line-height: 1;
+            letter-spacing: clamp(0.5px, 0.1vw, 1px);
+            background:
+                radial-gradient(60px 60px at 30% 25%, rgba(255,255,255,0.45), rgba(255,255,255,0) 60%),
+                radial-gradient(80px 80px at 70% 75%, rgba(255,255,255,0.25), rgba(255,255,255,0) 60%),
+                linear-gradient(135deg, #66d1ff, #8f7aff 55%, #ff7ac6);
+            color: #ffffff;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+            box-shadow:
+                inset 0 2px 6px rgba(255,255,255,0.35),
+                0 12px 30px rgba(0,0,0,0.35),
+                0 0 120px rgba(143,122,255,0.35);
+            animation: floatBubble 3s ease-in-out infinite, glowPulse 2s ease-in-out infinite alternate;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 10;
+            white-space: nowrap;
+            overflow: visible;
+            min-width: max-content;
+        }
+
+        .bubble:hover {
+            transform: scale(1.05);
+            box-shadow:
+                inset 0 2px 6px rgba(255,255,255,0.35),
+                0 20px 40px rgba(0,0,0,0.4),
+                0 0 150px rgba(143,122,255,0.5);
+        }
+
+        @keyframes floatBubble {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes glowPulse {
+            0% {
+                box-shadow:
+                    inset 0 2px 6px rgba(255,255,255,0.35),
+                    0 12px 30px rgba(0,0,0,0.35),
+                    0 0 120px rgba(143,122,255,0.35);
+            }
+            100% {
+                box-shadow:
+                    inset 0 2px 6px rgba(255,255,255,0.35),
+                    0 12px 30px rgba(0,0,0,0.35),
+                    0 0 150px rgba(143,122,255,0.6);
+            }
+        }
+
+        .bubble::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+            background:
+                radial-gradient(120px 80px at 20% 0%, rgba(255,255,255,0.7), rgba(255,255,255,0) 60%),
+                radial-gradient(140px 100px at 85% 100%, rgba(255,255,255,0.4), rgba(255,255,255,0) 55%);
+            filter: blur(14px);
+            opacity: 0.65;
+            pointer-events: none;
+            animation: glowRotate 4s linear infinite;
+        }
+
+        @keyframes glowRotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .coming-soon {
+            padding: 12px 22px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.14);
+            color: #ffffff;
+            font-size: 15px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.35), 0 10px 24px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: buttonPulse 2s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coming-soon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .coming-soon:hover::before {
+            left: 100%;
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% {
+                transform: scale(1);
+                background: rgba(255,255,255,0.14);
+            }
+            50% {
+                transform: scale(1.02);
+                background: rgba(255,255,255,0.2);
+            }
+        }
+
+        /* User Input Form */
+        .user-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 100;
+            display: none;
+            min-width: 300px;
+        }
+
+        .user-form.show {
+            display: block;
+            animation: formFadeIn 0.3s ease-out;
+        }
+
+        @keyframes formFadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .form-title {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #66d1ff, #8f7aff);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* User Names Display */
+        .user-names {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .user-name {
+            background: rgba(143, 122, 255, 0.8);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            animation: nameFloat 4s ease-in-out infinite;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-name:nth-child(1) { animation-delay: 0s; }
+        .user-name:nth-child(2) { animation-delay: 0.5s; }
+        .user-name:nth-child(3) { animation-delay: 1s; }
+        .user-name:nth-child(4) { animation-delay: 1.5s; }
+        .user-name:nth-child(5) { animation-delay: 2s; }
+        .user-name:nth-child(6) { animation-delay: 2.5s; }
+        .user-name:nth-child(7) { animation-delay: 3s; }
+        .user-name:nth-child(8) { animation-delay: 3.5s; }
+        .user-name:nth-child(9) { animation-delay: 4s; }
+        .user-name:nth-child(10) { animation-delay: 4.5s; }
+
+        @keyframes nameFloat {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Player Name Tags (like FIFA/PES) */
+        .astronaut-fleet { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+        .astronaut-wrapper { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .astronaut-motion { position: relative; animation: astronautFloat var(--dur, 18s) linear infinite; animation-delay: var(--delay, 0s); }
+        .astronaut-name {
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translate(-50%, -8px);
+            background: linear-gradient(135deg, rgba(143, 122, 255, 0.9), rgba(102, 209, 255, 0.9));
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            display: none;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* Floating orbs */
+        .floating-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(143,122,255,0.3) 0%, rgba(143,122,255,0.1) 70%, transparent 100%);
+            animation: orbFloat 20s infinite linear;
+        }
+
+        .orb:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+            animation-duration: 25s;
+        }
+
+        .orb:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 70%;
+            right: 15%;
+            animation-delay: 5s;
+            animation-duration: 30s;
+        }
+
+        .orb:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            top: 40%;
+            right: 30%;
+            animation-delay: 10s;
+            animation-duration: 20s;
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.3;
+            }
+            25% {
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 0.5;
+            }
+            75% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(0px) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* Astronaut */
+        .astronaut {
+            width: 150px; /* Adjust as needed */
+            height: 150px; /* Adjust as needed */
+            animation: astronautFloat 15s infinite ease-in-out;
+        }
+
+        @keyframes astronautFloat {
+            0% {
+                transform: translateX(-400px) translateY(-150px) rotate(-10deg) scale(0.9);
+            }
+            15% {
+                transform: translateX(100px) translateY(-200px) rotate(15deg) scale(1.1);
+            }
+            30% {
+                transform: translateX(400px) translateY(-100px) rotate(8deg) scale(1);
+            }
+            45% {
+                transform: translateX(600px) translateY(50px) rotate(-5deg) scale(0.95);
+            }
+            60% {
+                transform: translateX(500px) translateY(300px) rotate(-12deg) scale(1.05);
+            }
+            75% {
+                transform: translateX(200px) translateY(400px) rotate(10deg) scale(0.9);
+            }
+            90% {
+                transform: translateX(-300px) translateY(350px) rotate(-8deg) scale(1);
+            }
+            100% {
+                transform: translateX(-400px) translateY(-150px) rotate(-10deg) scale(0.9);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- Floating Orbs -->
+    <div class="floating-orbs">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- Gomgom.id Text -->
+    <h1 class="bubble">gomgom.id</h1>
+    <!-- Astronaut Fleet (rendered via JS) -->
+    <div class="astronaut-fleet" id="astronautFleet"></div>
+
+    <div class="splash" role="main">
+        <button class="coming-soon">Coming soon</button>
+    </div>
+
+    <!-- User Input Form -->
+    <div class="user-form">
+        <h2 class="form-title">Join the club</h2>
+        <form id="userForm">
+            <div class="form-group">
+                <label for="userName">Name:</label>
+                <input type="text" id="userName" name="userName" placeholder="Enter your name" required>
+            </div>
+            <div class="form-group">
+                <label for="userWhatsApp">WhatsApp Number:</label>
+                <input type="tel" id="userWhatsApp" name="userWhatsApp" placeholder="Enter your WhatsApp number" required>
+            </div>
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">Join</button>
+                <button type="button" class="btn btn-secondary" id="closeForm">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const comingSoonButton = document.querySelector('.coming-soon');
+            const userForm = document.querySelector('.user-form');
+            const overlay = document.getElementById('overlay');
+            const closeFormButton = document.getElementById('closeForm');
+            const playerNameTags = document.querySelector('.astronaut-name'); // Select the specific name tag
+            const fleet = document.getElementById('astronautFleet');
+
+            // Utility: random in range
+            const rand = (min, max) => Math.random() * (max - min) + min;
+
+            // Render astronaut fleet from users
+            async function renderFleet() {
+                try {
+                    const res = await fetch('/api/users');
+                    const users = await res.json();
+
+                    fleet.innerHTML = '';
+
+                    users.slice(0, 10).forEach((user, idx) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'astronaut-wrapper';
+
+                        const motion = document.createElement('div');
+                        motion.className = 'astronaut-motion';
+                        motion.style.setProperty('--dur', `${rand(14, 24)}s`);
+                        motion.style.setProperty('--delay', `${rand(0, 6)}s`);
+
+                        const nameTag = document.createElement('div');
+                        nameTag.className = 'astronaut-name';
+                        nameTag.textContent = user.name;
+
+                        const img = document.createElement('img');
+                        img.src = '../static/img/astro.png';
+                        img.alt = 'Astronaut';
+                        img.width = 150; img.height = 150;
+
+                        motion.appendChild(nameTag);
+                        motion.appendChild(img);
+                        wrapper.appendChild(motion);
+                        fleet.appendChild(wrapper);
+                    });
+                } catch (e) {
+                    console.error('Failed to render fleet', e);
+                }
+            }
+
+            // Function to display user names
+            async function displayUserNames() {
+                try {
+                    const response = await fetch('/api/users');
+                    const users = await response.json();
+                    
+                    playerNameTags.innerHTML = ''; // Clear existing tags
+                    
+                    users.forEach((user, index) => {
+                        // Add player name tag above astronaut
+                        const playerTag = document.createElement('div');
+                        playerTag.className = 'astronaut-name';
+                        playerTag.textContent = user.name; // Just show name, not WhatsApp
+                        playerTag.style.zIndex = 10 + index; // Ensure proper layering
+                        playerNameTags.appendChild(playerTag);
+                    });
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                }
+            }
+
+            // Function to show the form
+            async function showForm() {
+                try {
+                    const response = await fetch('/api/users');
+                    const users = await response.json();
+                    
+                    if (users.length >= 10) {
+                        alert('Maximum 10 users reached!');
+                        return;
+                    }
+                    
+                    userForm.classList.add('show');
+                    overlay.classList.add('show');
+                } catch (error) {
+                    console.error('Error checking users:', error);
+                    // Show form anyway if there's an error
+                    userForm.classList.add('show');
+                    overlay.classList.add('show');
+                }
+            }
+
+            // Function to hide the form
+            function hideForm() {
+                userForm.classList.remove('show');
+                overlay.classList.remove('show');
+                // Clear form inputs
+                document.getElementById('userName').value = '';
+                document.getElementById('userWhatsApp').value = '';
+            }
+
+            // Event listener for the "Coming soon" button
+            comingSoonButton.addEventListener('click', showForm);
+
+            // Event listener for the close button
+            closeFormButton.addEventListener('click', hideForm);
+
+            // Event listener for clicking overlay to close form
+            overlay.addEventListener('click', hideForm);
+
+            // Event listener for the form submission
+            document.getElementById('userForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const userName = document.getElementById('userName').value.trim();
+                const userWhatsApp = document.getElementById('userWhatsApp').value.trim();
+
+                // Basic validation
+                if (!userName || !userWhatsApp) {
+                    alert('Please fill in both name and WhatsApp number.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: userName,
+                            whatsapp: userWhatsApp
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert(result.message);
+                        // Re-render fleet
+                        await renderFleet();
+                        hideForm();
+                    } else {
+                        alert(result.error || 'Registration failed');
+                    }
+                } catch (error) {
+                    console.error('Error registering user:', error);
+                    alert('Network error. Please try again.');
+                }
+            });
+
+            // Initial render
+            renderFleet();
+        });
+    </script>
+</body>
+</html>
+
+
