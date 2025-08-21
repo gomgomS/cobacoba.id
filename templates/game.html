@@ -60,7 +60,16 @@
         .coming-soon {
             padding: 12px 22px;
             border: 0;
-            border-radius: 999px;
+            border-radius: 999  File "/usr/local/lib/python3.8/dist-packages/flask_socketio/__init__.py", line 650, in run
+    raise RuntimeError('The Werkzeug web server is not '
+RuntimeError: The Werkzeug web server is not designed to run in production. Pass allow_unsafe_werkzeug=True to the run() method to disable this error.
+Starting Mini RPG on http://localhost:5000 (async=threading)
+Traceback (most recent call last):
+  File "app.py", line 240, in <module>
+    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+  File "/usr/local/lib/python3.8/dist-packages/flask_socketio/__init__.py", line 650, in run
+    raise RuntimeError('The Werkzeug web server is not '
+RuntimeError: The Werkzeug web server is not designed to run in production. Pass allow_unsafe_werkzeug=True to the run() method to disable this error.px;
             background: rgba(255,255,255,0.14);
             color: #ffffff;
             font-size: 15px;

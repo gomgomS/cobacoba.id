@@ -4,7 +4,6 @@ import json
 from typing import Dict, Any
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from flask_socketio import SocketIO, emit, disconnect
 
 
 APP_TITLE = "Mini RPG"
@@ -63,21 +62,6 @@ def random_color() -> str:
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
-
-# Choose async mode. Try eventlet first, fall back to threading in dev (works over long-polling).
-async_mode_env = os.environ.get("ASYNC_MODE", "eventlet").lower().strip()
-resolved_async_mode = async_mode_env
-if async_mode_env == "eventlet":
-    try:
-        import eventlet  # noqa: F401
-    except Exception:
-        resolved_async_mode = "threading"
-
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode=resolved_async_mode)
-
-
-# In-memory game state
-players: Dict[str, Dict[str, Any]] = {}
 
 
 @app.route("/")
@@ -150,93 +134,11 @@ def register_user():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 
-@socketio.on("connect")
-def handle_connect():
-    # Name comes from Socket.IO connection query string
-    raw_name = request.args.get("name", "")
-    safe_name = sanitize_name(raw_name)
-
-    if len(players) >= MAX_PLAYERS:
-        emit("server_error", {"type": "server_full", "message": "Server full (10/10)."})
-        disconnect()
-        return
-
-    sid = request.sid
-    start_x = random.randint(PLAYER_RADIUS, MAP_WIDTH - PLAYER_RADIUS)
-    start_y = random.randint(PLAYER_RADIUS, MAP_HEIGHT - PLAYER_RADIUS)
-    player = {
-        "id": sid,
-        "name": safe_name or "Player",
-        "x": start_x,
-        "y": start_y,
-        "color": random_color(),
-        # Optional sprite: put files like static/img/char1.png ... char6.png
-        "spriteUrl": f"/static/img/char{random.randint(1,6)}.png",
-    }
-    players[sid] = player
-
-    # Send initial state to the newly connected client
-    emit("init_state", {
-        "selfId": sid,
-        "players": list(players.values()),
-        "map": {"width": MAP_WIDTH, "height": MAP_HEIGHT, "playerRadius": PLAYER_RADIUS},
-        "maxPlayers": MAX_PLAYERS,
-    })
-
-    # Notify all others
-    emit("player_joined", player, broadcast=True, include_self=False)
-
-
-@socketio.on("disconnect")
-def handle_disconnect():
-    sid = request.sid
-    player = players.pop(sid, None)
-    if player:
-        emit("player_left", {"id": sid}, broadcast=True)
-
-
-@socketio.on("move")
-def handle_move(data):
-    sid = request.sid
-    player = players.get(sid)
-    if not player:
-        return
-
-    try:
-        dx = int(data.get("dx", 0))
-        dy = int(data.get("dy", 0))
-    except Exception:
-        dx, dy = 0, 0
-
-    new_x = max(PLAYER_RADIUS, min(MAP_WIDTH - PLAYER_RADIUS, player["x"] + dx))
-    new_y = max(PLAYER_RADIUS, min(MAP_HEIGHT - PLAYER_RADIUS, player["y"] + dy))
-    if new_x == player["x"] and new_y == player["y"]:
-        return
-
-    player["x"], player["y"] = new_x, new_y
-    emit("player_moved", {"id": sid, "x": new_x, "y": new_y}, broadcast=True)
-
-
-@socketio.on("chat")
-def handle_chat(data):
-    sid = request.sid
-    player = players.get(sid)
-    if not player:
-        return
-    text = str(data.get("text", "")).strip()
-    if not text:
-        return
-    # Limit message length
-    if len(text) > 300:
-        text = text[:300]
-    emit("chat", {"from": player["name"], "text": text}, broadcast=True)
-
-
 if __name__ == "__main__":
     # For local dev. In production behind a reverse proxy, set host/port via env.
     port = int(os.environ.get("PORT", 5000))
-    print(f"Starting {APP_TITLE} on http://localhost:{port} (async={socketio.async_mode})")
+    print(f"Starting {APP_TITLE} on http://localhost:{port}")
     # debug=True provides more logs; disable in production
-    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)
 
 
