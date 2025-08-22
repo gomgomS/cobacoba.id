@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #0f1224; color: #fff; }
+        h1 { margin-bottom: 16px; }
+        table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.05); }
+        th, td { border: 1px solid rgba(255,255,255,0.15); padding: 8px 10px; text-align: left; vertical-align: top; }
+        th { background: rgba(255,255,255,0.1); }
+        small { color: #bdbdbd; }
+        .pill { padding: 2px 8px; border-radius: 999px; display: inline-block; font-size: 12px; }
+        .yes { background: #2e7d32; }
+        .no { background: #c62828; }
+        .meta { font-size: 12px; color: #bdbdbd; }
+        .wrap { white-space: pre-wrap; }
+    </style>
+    </head>
+<body>
+    <h1>Registered Users</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>WhatsApp</th>
+                <th>Status</th>
+                <th>Has Laptop</th>
+                <th>Has Data</th>
+                <th>Installed Apps Before</th>
+                <th>Knows Excel Basics</th>
+                <th>Coding Experience</th>
+                <th>Reason</th>
+                <th>IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.name }}</td>
+                <td>
+                    {% if u.whatsapp %}
+                        <a href="https://wa.me/{{ u.whatsapp | replace('+', '') | replace(' ', '') }}" target="_blank" style="color:#66d1ff;">{{ u.whatsapp }}</a>
+                    {% else %}
+                        <small>—</small>
+                    {% endif %}
+                </td>
+                <td class="wrap">{{ u.status or '' }}</td>
+                <td>
+                    {% if u.has_laptop is sameas true %}<span class="pill yes">✅</span>
+                    {% elif u.has_laptop is sameas false %}<span class="pill no">❌</span>
+                    {% else %}<small>—</small>{% endif %}
+                </td>
+                <td>
+                    {% if u.has_data is sameas true %}<span class="pill yes">✅</span>
+                    {% elif u.has_data is sameas false %}<span class="pill no">❌</span>
+                    {% else %}<small>—</small>{% endif %}
+                </td>
+                <td class="wrap">{{ u.installed_apps_before or '' }}</td>
+                <td>
+                    {% if u.knows_excel_basics is sameas true %}<span class="pill yes">✅</span>
+                    {% elif u.knows_excel_basics is sameas false %}<span class="pill no">❌</span>
+                    {% else %}<small>—</small>{% endif %}
+                </td>
+                <td class="wrap">{{ u.coding_experience or '' }}</td>
+                <td class="wrap">{{ u.reason or '' }}</td>
+                <td class="meta">{{ u.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p class="meta">Basic Auth: username <b>gomgom</b>, password <b>gomgom</b>.</p>
+</body>
+</html>
+
+

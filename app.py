@@ -2,8 +2,9 @@ import os
 import random
 import json
 from typing import Dict, Any
+from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 
 
 APP_TITLE = "Mini RPG"
@@ -63,6 +64,28 @@ def random_color() -> str:
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "gomgom")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "gomgom")
+
+def _check_basic_auth(auth) -> bool:
+    return bool(auth and auth.username == ADMIN_USERNAME and auth.password == ADMIN_PASSWORD)
+
+def _auth_required() -> Response:
+    return Response(
+        "Authentication required",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'}
+    )
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not _check_basic_auth(auth):
+            return _auth_required()
+        return f(*args, **kwargs)
+    return decorated
+
 
 @app.route("/")
 def index():
@@ -95,7 +118,7 @@ def get_users():
 def register_user():
     """Register a new user"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         name = data.get("name", "").strip()
         whatsapp = data.get("whatsapp", "").strip()
         
@@ -121,6 +144,20 @@ def register_user():
             "whatsapp": whatsapp,
             "timestamp": request.headers.get("X-Forwarded-For", request.remote_addr)
         }
+
+        # Optional participant fields (from step-2 form)
+        optional_fields = [
+            "has_laptop",
+            "has_data",
+            "installed_apps_before",
+            "knows_excel_basics",
+            "coding_experience",
+            "status",
+            "reason",
+        ]
+        for key in optional_fields:
+            if key in data:
+                new_user[key] = data[key]
         
         users.append(new_user)
         
@@ -132,6 +169,13 @@ def register_user():
             
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+
+@app.route("/admin/users")
+@requires_auth
+def admin_users():
+    users = load_users()
+    return render_template("users.html", title=f"{APP_TITLE} · Users", users=users)
 
 
 if __name__ == "__main__":

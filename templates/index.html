@@ -282,6 +282,36 @@
             color: rgba(255, 255, 255, 0.6);
         }
 
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background-color: #1b2440;
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .form-group select option {
+            background-color: #0f1224;
+            color: #ffffff;
+        }
+
+        .form-group select:focus {
+            outline: 2px solid #66d1ff;
+            outline-offset: 1px;
+        }
+
+        /* Scrollable listbox style when size attribute is set */
+        .form-group select[size] {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
         .form-buttons {
             display: flex;
             gap: 10px;
@@ -570,10 +600,10 @@
         <button class="coming-soon">Coming soon</button>
     </div>
 
-    <!-- User Input Form -->
-    <div class="user-form">
+    <!-- Step 1: Name & WhatsApp -->
+    <div class="user-form" id="step1Modal">
         <h2 class="form-title">Join the club</h2>
-        <form id="userForm">
+        <form id="userFormStep1">
             <div class="form-group">
                 <label for="userName">Name:</label>
                 <input type="text" id="userName" name="userName" placeholder="Enter your name" required>
@@ -583,9 +613,85 @@
                 <input type="tel" id="userWhatsApp" name="userWhatsApp" placeholder="Enter your WhatsApp number" required>
             </div>
             <div class="form-buttons">
-                <button type="submit" class="btn btn-primary">Join</button>
+                <button type="submit" class="btn btn-primary">Next</button>
                 <button type="button" class="btn btn-secondary" id="closeForm">Cancel</button>
             </div>
+        </form>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="user-form" id="step2Modal">
+        <h2 class="form-title" style="display:none;"></h2>
+        <form id="userFormStep2">
+            <div class="form-group">
+                <label>Punya Laptop:</label>
+                <select id="hasLaptop">
+                    <option value="">Pilih</option>
+                    <option value="true">✅</option>
+                    <option value="false">❌</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Punya Paket Data:</label>
+                <select id="hasData">
+                    <option value="">Pilih</option>
+                    <option value="true">✅</option>
+                    <option value="false">❌</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Pernah Install Aplikasi di Laptop:</label>
+                <select id="installedAppsBefore">
+                    <option value="">Pilih</option>
+                    <option value="Ya">Ya</option>
+                    <option value="Tidak">Tidak</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ngerti Excel & Rumus Dasar:</label>
+                <select id="knowsExcel">
+                    <option value="">Pilih</option>
+                    <option value="true">✅</option>
+                    <option value="false">❌</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Pengalaman Belajar Ngoding: <span id="codingExperienceValue">0 tahun (belum ada)</span></label>
+                <input type="range" id="codingExperience" min="0" max="10" step="1" value="0">
+            </div>
+            <div class="form-group">
+                <label>Status:</label>
+                <select id="statusSelect">
+                    <option value="">Pilih</option>
+                    <option>Kuliah IT</option>
+                    <option>Kuliah Jurusan Lain</option>
+                    <option>SMA/SMK</option>
+                    <option>Belum Kuliah</option>
+                    <option>Tamatan IT</option>
+                    <option>Tamatan Jurusan Lain</option>
+                    <option>Sedang Berkarir di IT</option>
+                    <option>Lainnya</option>
+                </select>
+                <input type="text" id="statusManual" placeholder="Isi manual jika pilih Lainnya" style="margin-top:8px; display:none;">
+            </div>
+            <div class="form-group">
+                <label>Alasan Belajar Ngoding:</label>
+                <select id="reasonSelect">
+                    <option value="">Pilih</option>
+                    <option>Gabut</option>
+                    <option>Pingin Belajar Hal Baru</option>
+                    <option>Pingin Upgrade Skill</option>
+                    <option>Pingin Cari Kerja di IT</option>
+                    <option>Pingin Bikin Project Sendiri</option>
+                    <option>Lainnya</option>
+                </select>
+                <input type="text" id="reasonManual" placeholder="Isi manual jika pilih Lainnya" style="margin-top:8px; display:none;">
+            </div>
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" id="backToStep1">Back</button>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+            
         </form>
     </div>
 
@@ -595,7 +701,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const comingSoonButton = document.querySelector('.coming-soon');
-            const userForm = document.querySelector('.user-form');
+            const step1Modal = document.getElementById('step1Modal');
+            const step2Modal = document.getElementById('step2Modal');
             const overlay = document.getElementById('overlay');
             const closeFormButton = document.getElementById('closeForm');
             const playerNameTags = document.querySelector('.astronaut-name'); // Select the specific name tag
@@ -675,23 +782,37 @@
                         return;
                     }
                     
-                    userForm.classList.add('show');
+                    step1Modal.classList.add('show');
                     overlay.classList.add('show');
                 } catch (error) {
                     console.error('Error checking users:', error);
                     // Show form anyway if there's an error
-                    userForm.classList.add('show');
+                    step1Modal.classList.add('show');
                     overlay.classList.add('show');
                 }
             }
 
             // Function to hide the form
             function hideForm() {
-                userForm.classList.remove('show');
+                step1Modal.classList.remove('show');
+                step2Modal.classList.remove('show');
                 overlay.classList.remove('show');
                 // Clear form inputs
                 document.getElementById('userName').value = '';
                 document.getElementById('userWhatsApp').value = '';
+                document.getElementById('hasLaptop').value = '';
+                document.getElementById('hasData').value = '';
+                document.getElementById('installedAppsBefore').value = '';
+                document.getElementById('knowsExcel').value = '';
+                document.getElementById('codingExperience').value = '0';
+                const ceVal = document.getElementById('codingExperienceValue');
+                if (ceVal) ceVal.textContent = '0 tahun (belum ada)';
+                document.getElementById('statusSelect').value = '';
+                document.getElementById('statusManual').style.display = 'none';
+                document.getElementById('statusManual').value = '';
+                document.getElementById('reasonSelect').value = '';
+                document.getElementById('reasonManual').style.display = 'none';
+                document.getElementById('reasonManual').value = '';
             }
 
             // Event listener for the "Coming soon" button
@@ -703,14 +824,59 @@
             // Event listener for clicking overlay to close form
             overlay.addEventListener('click', hideForm);
 
-            // Event listener for the form submission
-            document.getElementById('userForm').addEventListener('submit', async function(event) {
-                event.preventDefault();
+            // Step 1 submit => go to step 2
+            document.getElementById('userFormStep1').addEventListener('submit', function(e) {
+                e.preventDefault();
                 const userName = document.getElementById('userName').value.trim();
                 const userWhatsApp = document.getElementById('userWhatsApp').value.trim();
-
-                // Basic validation
                 if (!userName || !userWhatsApp) {
+                    alert('Please fill in both name and WhatsApp number.');
+                    return;
+                }
+                step1Modal.classList.remove('show');
+                step2Modal.classList.add('show');
+            });
+
+            // Back to step 1
+            document.getElementById('backToStep1').addEventListener('click', function() {
+                step2Modal.classList.remove('show');
+                step1Modal.classList.add('show');
+            });
+
+            // Show/hide manual fields when selecting "Lainnya"
+            document.getElementById('statusSelect').addEventListener('change', function() {
+                const manual = document.getElementById('statusManual');
+                manual.style.display = this.value === 'Lainnya' ? 'block' : 'none';
+            });
+            document.getElementById('reasonSelect').addEventListener('change', function() {
+                const manual = document.getElementById('reasonManual');
+                manual.style.display = this.value === 'Lainnya' ? 'block' : 'none';
+            });
+
+            // Update slider label
+            const codingExperienceInput = document.getElementById('codingExperience');
+            const codingExperienceValue = document.getElementById('codingExperienceValue');
+            codingExperienceInput.addEventListener('input', function() {
+                const years = parseInt(this.value || '0', 10);
+                codingExperienceValue.textContent = years === 0 ? '0 tahun (belum ada)' : years + ' tahun';
+            });
+
+            // Step 2 submit => send to backend
+            document.getElementById('userFormStep2').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const payload = {
+                    name: document.getElementById('userName').value.trim(),
+                    whatsapp: document.getElementById('userWhatsApp').value.trim(),
+                    has_laptop: document.getElementById('hasLaptop').value === 'true' ? true : (document.getElementById('hasLaptop').value === 'false' ? false : undefined),
+                    has_data: document.getElementById('hasData').value === 'true' ? true : (document.getElementById('hasData').value === 'false' ? false : undefined),
+                    installed_apps_before: document.getElementById('installedAppsBefore').value.trim() || undefined,
+                    knows_excel_basics: document.getElementById('knowsExcel').value === 'true' ? true : (document.getElementById('knowsExcel').value === 'false' ? false : undefined),
+                    coding_experience: document.getElementById('codingExperience').value.trim() || undefined,
+                    status: (document.getElementById('statusSelect').value === 'Lainnya' ? document.getElementById('statusManual').value.trim() : document.getElementById('statusSelect').value) || undefined,
+                    reason: (document.getElementById('reasonSelect').value === 'Lainnya' ? document.getElementById('reasonManual').value.trim() : document.getElementById('reasonSelect').value) || undefined,
+                };
+
+                if (!payload.name || !payload.whatsapp) {
                     alert('Please fill in both name and WhatsApp number.');
                     return;
                 }
@@ -718,20 +884,12 @@
                 try {
                     const response = await fetch('/api/users', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            name: userName,
-                            whatsapp: userWhatsApp
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
                     });
-
                     const result = await response.json();
-
                     if (response.ok) {
                         alert(result.message);
-                        // Re-render fleet
                         await renderFleet();
                         hideForm();
                     } else {
