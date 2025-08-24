@@ -15,6 +15,8 @@ PLAYER_RADIUS = 14
 
 # User data file path
 USER_DATA_FILE = "data/users.json"
+# Links data file path
+LINKS_DATA_FILE = "data/links.json"
 
 def load_users():
     """Load users from JSON file"""
@@ -37,6 +39,30 @@ def save_users(users):
         return True
     except Exception as e:
         print(f"Error saving users: {e}")
+        return False
+
+
+def load_links():
+    """Load links from JSON file"""
+    try:
+        if os.path.exists(LINKS_DATA_FILE) and os.path.getsize(LINKS_DATA_FILE) > 0:
+            with open(LINKS_DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        print(f"Error loading links: {e}")
+        return []
+
+
+def save_links(links):
+    """Save links to JSON file"""
+    try:
+        os.makedirs(os.path.dirname(LINKS_DATA_FILE), exist_ok=True)
+        with open(LINKS_DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(links, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error saving links: {e}")
         return False
 
 
@@ -87,6 +113,44 @@ def requires_auth(f):
     return decorated
 
 
+def sanitize_id(raw_id: str) -> str:
+    """Sanitize an ID for use in URL path (letters, numbers, dash, underscore)."""
+    if not raw_id:
+        return ""
+    cleaned_chars = []
+    for ch in raw_id.strip():
+        if ch.isalnum() or ch in {"-", "_"}:
+            cleaned_chars.append(ch)
+    return "".join(cleaned_chars)[:40].lower()
+
+
+def slugify_name(name: str) -> str:
+    """Generate a URL-friendly slug from a name."""
+    base = []
+    for ch in (name or "").strip().lower():
+        if ch.isalnum():
+            base.append(ch)
+        elif ch in {" ", "-", "_", "."}:
+            base.append("-")
+        # else drop
+    # collapse dashes
+    slug = []
+    prev_dash = False
+    for ch in base:
+        if ch == "-":
+            if not prev_dash:
+                slug.append("-")
+            prev_dash = True
+        else:
+            slug.append(ch)
+            prev_dash = False
+    slug_str = "".join(slug).strip("-") or "link"
+    return slug_str[:40]
+
+
+RESERVED_IDS = {"admin", "api", "game", "static", ""}
+
+
 @app.route("/")
 def index():
     return render_template("index.html", title=APP_TITLE)
@@ -134,8 +198,8 @@ def register_user():
                 return jsonify({"error": "User with this name or WhatsApp number already exists"}), 400
         
         # Check maximum users limit
-        if len(users) >= 10:
-            return jsonify({"error": "Maximum 10 users reached"}), 400
+        if len(users) >= 20:
+            return jsonify({"error": "Maximum 20 users reached"}), 400
         
         # Add new user
         new_user = {
@@ -176,6 +240,68 @@ def register_user():
 def admin_users():
     users = load_users()
     return render_template("users.html", title=f"{APP_TITLE} · Users", users=users)
+
+
+@app.route("/admin/links", methods=["GET"])
+@requires_auth
+def admin_links():
+    links = load_links()
+    return render_template("links.html", title=f"{APP_TITLE} · Links", links=links)
+
+
+@app.route("/admin/links", methods=["POST"])
+@requires_auth
+def create_link():
+    # Accept JSON or form-urlencoded
+    data = request.get_json() if request.is_json else request.form.to_dict(flat=True)
+    data = data or {}
+    name = (data.get("name") or "").strip()
+    link = (data.get("link") or "").strip()
+    desc = (data.get("desc") or "").strip()
+    raw_id = (data.get("id") or "").strip()
+
+    if not name or not link:
+        error = "Name and link are required"
+        if request.is_json:
+            return jsonify({"error": error}), 400
+        links = load_links()
+        return render_template("links.html", title=f"{APP_TITLE} · Links", links=links, error=error), 400
+
+    links = load_links()
+    link_id = sanitize_id(raw_id) or slugify_name(name)
+
+    # Ensure unique ID
+    existing_ids = {item.get("id") for item in links}
+    base_id = link_id
+    suffix = 2
+    while link_id in existing_ids or link_id in RESERVED_IDS:
+        link_id = f"{base_id}-{suffix}"
+        suffix += 1
+
+    new_item = {"id": link_id, "name": name, "link": link, "desc": desc}
+    links.append(new_item)
+
+    if save_links(links):
+        if request.is_json:
+            return jsonify({"success": True, "link": new_item}), 201
+        return redirect(url_for("admin_links"))
+    else:
+        if request.is_json:
+            return jsonify({"error": "Failed to save link"}), 500
+        links = load_links()
+        return render_template("links.html", title=f"{APP_TITLE} · Links", links=links, error="Failed to save link"), 500
+
+
+@app.route("/<link_id>")
+def link_detail(link_id):
+    # Avoid catching special prefixes
+    if not link_id or link_id in RESERVED_IDS:
+        return redirect(url_for("index"))
+    items = load_links()
+    for item in items:
+        if item.get("id") == link_id:
+            return render_template("link_detail.html", title=item.get("name") or "Link", item=item)
+    return render_template("link_detail.html", title="Not found", item=None), 404
 
 
 if __name__ == "__main__":
