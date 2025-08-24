@@ -7,7 +7,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 
 
-APP_TITLE = "Mini RPG"
+APP_TITLE = "gomgom.id"
 MAX_PLAYERS = 10
 MAP_WIDTH = 900
 MAP_HEIGHT = 600
@@ -156,21 +156,6 @@ def index():
     return render_template("index.html", title=APP_TITLE)
 
 
-@app.route("/game")
-def game():
-    name = request.args.get("name", "").strip()
-    if not name:
-        return redirect(url_for("index"))
-    safe_name = sanitize_name(name)
-    return render_template(
-        "game.html",
-        title=APP_TITLE,
-        player_name=safe_name,
-        map_width=MAP_WIDTH,
-        map_height=MAP_HEIGHT,
-        player_radius=PLAYER_RADIUS,
-        max_players=MAX_PLAYERS,
-    )
 
 @app.route("/api/users", methods=["GET"])
 def get_users():
