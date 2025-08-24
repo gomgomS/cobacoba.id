@@ -1,6 +1,7 @@
 import os
 import random
 import json
+import time
 from typing import Dict, Any
 from functools import wraps
 
@@ -17,6 +18,8 @@ PLAYER_RADIUS = 14
 USER_DATA_FILE = "data/users.json"
 # Links data file path
 LINKS_DATA_FILE = "data/links.json"
+# Schedules data file path
+SCHEDULES_DATA_FILE = "data/schedules.json"
 
 def load_users():
     """Load users from JSON file"""
@@ -63,6 +66,30 @@ def save_links(links):
         return True
     except Exception as e:
         print(f"Error saving links: {e}")
+        return False
+
+
+def load_schedules():
+    """Load schedules from JSON file"""
+    try:
+        if os.path.exists(SCHEDULES_DATA_FILE) and os.path.getsize(SCHEDULES_DATA_FILE) > 0:
+            with open(SCHEDULES_DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        print(f"Error loading schedules: {e}")
+        return []
+
+
+def save_schedules(items):
+    """Save schedules to JSON file"""
+    try:
+        os.makedirs(os.path.dirname(SCHEDULES_DATA_FILE), exist_ok=True)
+        with open(SCHEDULES_DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(items, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error saving schedules: {e}")
         return False
 
 
@@ -148,7 +175,7 @@ def slugify_name(name: str) -> str:
     return slug_str[:40]
 
 
-RESERVED_IDS = {"admin", "api", "game", "static", ""}
+RESERVED_IDS = {"admin", "api", "game", "static", "schedule", ""}
 
 
 @app.route("/")
@@ -275,6 +302,81 @@ def create_link():
             return jsonify({"error": "Failed to save link"}), 500
         links = load_links()
         return render_template("links.html", title=f"{APP_TITLE} · Links", links=links, error="Failed to save link"), 500
+
+
+@app.route("/admin/schedules", methods=["GET"])
+@requires_auth
+def admin_schedules():
+    items = load_schedules()
+    # sort by date then type
+    items = sorted(items, key=lambda x: (x.get("date") or "", x.get("type") or "", x.get("id") or ""))
+    return render_template("schedules.html", title=f"{APP_TITLE} · Schedules", items=items)
+
+
+@app.route("/admin/schedules", methods=["POST"])
+@requires_auth
+def create_schedule():
+    data = request.form.to_dict(flat=True)
+    date = (data.get("date") or "").strip()
+    desc = (data.get("desc") or "").strip()
+    type_ = (data.get("type") or "").strip() or "activity"
+    if not date or not desc:
+        items = load_schedules()
+        return render_template("schedules.html", title=f"{APP_TITLE} · Schedules", items=items, error="Date and description are required"), 400
+    items = load_schedules()
+    new_id = f"sch-{int(time.time()*1000)}"
+    items.append({"id": new_id, "date": date, "desc": desc, "type": type_})
+    if save_schedules(items):
+        return redirect(url_for("admin_schedules"))
+    items = load_schedules()
+    return render_template("schedules.html", title=f"{APP_TITLE} · Schedules", items=items, error="Failed to save"), 500
+
+
+@app.route("/admin/schedules/delete", methods=["POST"])
+@requires_auth
+def delete_schedule():
+    sched_id = (request.form.get("id") or "").strip()
+    if not sched_id:
+        return redirect(url_for("admin_schedules"))
+    items = load_schedules()
+    items = [it for it in items if it.get("id") != sched_id]
+    save_schedules(items)
+    return redirect(url_for("admin_schedules"))
+
+
+@app.route("/admin/schedules/<sched_id>", methods=["GET", "POST"])
+@requires_auth
+def edit_schedule(sched_id):
+    items = load_schedules()
+    idx = next((i for i, it in enumerate(items) if it.get("id") == sched_id), None)
+    if idx is None:
+        return redirect(url_for("admin_schedules"))
+    if request.method == "POST":
+        data = request.form.to_dict(flat=True)
+        date = (data.get("date") or "").strip()
+        desc = (data.get("desc") or "").strip()
+        type_ = (data.get("type") or "").strip() or "activity"
+        if not date or not desc:
+            return render_template("schedules_edit.html", title=f"{APP_TITLE} · Edit Schedule", item=items[idx], error="Date and description are required")
+        items[idx]["date"] = date
+        items[idx]["desc"] = desc
+        items[idx]["type"] = type_
+        if save_schedules(items):
+            return redirect(url_for("admin_schedules"))
+        return render_template("schedules_edit.html", title=f"{APP_TITLE} · Edit Schedule", item=items[idx], error="Failed to save")
+    return render_template("schedules_edit.html", title=f"{APP_TITLE} · Edit Schedule", item=items[idx])
+
+
+@app.route("/api/schedules", methods=["GET"])
+def api_schedules():
+    items = load_schedules()
+    items = sorted(items, key=lambda x: (x.get("date") or "", x.get("type") or "", x.get("id") or ""))
+    return jsonify(items)
+
+
+@app.route("/schedule")
+def schedule_page():
+    return render_template("schedule.html", title=f"{APP_TITLE} · Schedule")
 
 
 @app.route("/<link_id>")

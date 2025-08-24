@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <style>
+        html, body { height: 100%; }
+        body { margin: 0; background: #0b0d1a; color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; overflow: hidden; }
+
+        .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(1200px 600px at 20% -10%, #1b2440 0%, #0f1224 50%, #0b0d1a 100%); }
+
+        /* Earth and center pin: fixed at viewport center */
+        .center-pin { position: fixed; left: 50%; top: calc(50% - 60px); width: 2px; height: 120px; transform: translateX(-50%); background: rgba(255,255,255,0.7); z-index: 4; border-radius: 2px; }
+        .earth { position: fixed; left: 50%; top: calc(50% - 60px - 390px); transform: translateX(-50%); width: 390px; height: 390px; background: url("{{ url_for('static', filename='img/earth.png') }}") center/contain no-repeat; z-index: 5; }
+        .center-info { position: fixed; left: 50%; top: calc(50% - 60px - 10px); transform: translate(-50%, -100%); z-index: 5; text-align: center; }
+        .center-date { font-size: 13px; color: #cfe9ff; margin-bottom: 6px; }
+        .center-types { display: grid; gap: 2px; }
+        .center-types .type-line { font-size: 12px; color: #e6f5ff; opacity: 0.9; }
+
+        /* infinite horizontal timeline area */
+        .viewport { position: fixed; inset: 0; display: flex; flex-direction: column; }
+        .timeline-wrap { position: relative; flex: 1; overflow: auto; overflow-y: hidden; z-index: 2; }
+        .timeline { position: relative; height: 100%; min-width: 300%; }
+        .baseline { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: rgba(255,255,255,0.35); }
+
+        /* top date ruler */
+        .ruler { position: absolute; left: 0; right: 0; top: 8px; height: 38px; z-index: 6; pointer-events: none; }
+        .ruler .tick { position: absolute; top: 0; transform: translateX(-50%); text-align: center; min-width: 80px; }
+        .ruler .label { font-size: 12px; color: #e7f4ff; text-shadow: 0 1px 2px rgba(0,0,0,0.4); white-space: nowrap; }
+        .ruler .sep { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 2px; }
+        .ruler .bar { width: 2px; height: 10px; background: rgba(255,255,255,0.65); border-radius: 2px; }
+        .ruler-type { position: absolute; top: 26px; transform: translateX(-50%); font-size: 12px; color: #e6f5ff; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+
+        /* info list below the line */
+        .dock { position: fixed; left: 0; right: 0; top: calc(50% + 20px); bottom: 0; z-index: 3; padding: 12px 16px; background: linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.5)); border-top: 1px solid rgba(255,255,255,0.15); overflow: auto; }
+        .dock h2 { margin: 0 0 8px 0; font-size: 14px; color: #cfe9ff; font-weight: 600; }
+        .list { display: grid; gap: 12px; }
+        .item { white-space: pre-wrap; }
+        .type { color: #bde0ff; font-size: 13px; }
+        .desc { color: #e6e6e6; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="bg"></div>
+    <div class="earth" title="earth"></div>
+    <div class="center-pin"></div>
+    <div class="center-info">
+        <div class="center-date" id="centerDate"></div>
+        <div class="center-types" id="centerTypes"></div>
+    </div>
+    <div class="viewport">
+        <div class="timeline-wrap" id="timelineWrap">
+            <div class="timeline" id="timeline">
+                <div class="baseline"></div>
+                <div class="ruler" id="ruler"><div class="ruler-type" id="rulerType"></div></div>
+            </div>
+        </div>
+        <div class="dock">
+            <h2 id="dockTitle"></h2>
+            <div class="list" id="dockList"></div>
+        </div>
+    </div>
+
+    <script>
+        const MS_PER_DAY = 24*60*60*1000;
+        const DAY_PX = 120;
+        function yyyymmdd(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            return `${y}-${m}-${dd}`;
+        }
+
+        const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        function formatDateIdn(d){
+            return `${d.getDate()} ${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        async function fetchSchedules() {
+            const res = await fetch('/api/schedules');
+            return res.json();
+        }
+
+        // No per-day ticks; we only draw a horizontal baseline
+
+        function groupByDate(items){
+            const map = {};
+            for (const it of items){
+                const key = it.date;
+                if (!map[key]) map[key] = [];
+                map[key].push(it);
+            }
+            return map;
+        }
+
+        function renderDock(dateStr, groups){
+            const title = document.getElementById('dockTitle');
+            const list = document.getElementById('dockList');
+            title.textContent = dateStr;
+            list.innerHTML = '';
+            const items = groups[dateStr] || [];
+            for (const it of items){
+                const div = document.createElement('div');
+                div.className = 'item';
+                const t = document.createElement('div');
+                t.className = 'type';
+                t.textContent = (it.type || 'other');
+                const d = document.createElement('div');
+                d.className = 'desc';
+                d.textContent = (it.desc || '');
+                div.appendChild(t);
+                div.appendChild(d);
+                list.appendChild(div);
+            }
+            if (items.length === 0){
+                const empty = document.createElement('div');
+                empty.className = 'item';
+                empty.textContent = 'No items for this date';
+                list.appendChild(empty);
+            }
+        }
+
+        function renderCenterInfo(dateStr, groups){
+            const dateEl = document.getElementById('centerDate');
+            const typesEl = document.getElementById('centerTypes');
+            dateEl.textContent = dateStr;
+            typesEl.innerHTML = '';
+            const items = groups[dateStr] || [];
+            for (const it of items){
+                const line = document.createElement('div');
+                line.className = 'type-line';
+                line.textContent = it.type || 'other';
+                typesEl.appendChild(line);
+            }
+            if (items.length === 0){
+                const line = document.createElement('div');
+                line.className = 'type-line';
+                line.textContent = '—';
+                typesEl.appendChild(line);
+            }
+        }
+
+        function renderRuler(rulerEl, centerX, daysLeft, daysRight){
+            rulerEl.innerHTML = '';
+            const today = new Date();
+            for (let i=-daysLeft; i<=daysRight; i++){
+                const x = centerX + i*DAY_PX;
+                const tick = document.createElement('div');
+                tick.className = 'tick';
+                tick.style.left = `${x}px`;
+                const label = document.createElement('div');
+                label.className = 'label';
+                const d = new Date(today.getTime() + i*MS_PER_DAY);
+                label.textContent = formatDateIdn(d);
+                const sep = document.createElement('div');
+                sep.className = 'sep';
+                const bar1 = document.createElement('div'); bar1.className = 'bar';
+                const bar2 = document.createElement('div'); bar2.className = 'bar';
+                sep.appendChild(bar1); sep.appendChild(bar2);
+                tick.appendChild(label);
+                tick.appendChild(sep);
+                rulerEl.appendChild(tick);
+            }
+            // add a floating type label centered under the separator bars
+            const typeEl = document.getElementById('rulerType');
+            if (!typeEl) return;
+            typeEl.style.left = (centerX) + 'px';
+        }
+
+        (async function init(){
+            const wrap = document.getElementById('timelineWrap');
+            const timeline = document.getElementById('timeline');
+            const rulerEl = document.getElementById('ruler');
+
+            // size and center
+            const totalWidth = wrap.clientWidth * 10; // larger area to allow long scroll
+            timeline.style.minWidth = totalWidth + 'px';
+            const centerX = totalWidth/2;
+
+            // render top date ruler
+            renderRuler(rulerEl, centerX, 365, 365);
+
+            // center scroll at the now line
+            requestAnimationFrame(() => {
+                wrap.scrollLeft = centerX - wrap.clientWidth/2;
+            });
+
+            const items = await fetchSchedules();
+            const groups = groupByDate(items);
+            const todayStr = yyyymmdd(new Date());
+            renderDock(todayStr, groups);
+            renderCenterInfo(todayStr, groups);
+            // Initialize top type text under || for today
+            const typeCenterEl = document.getElementById('rulerType');
+            if (typeCenterEl){
+                const todayItems = groups[todayStr] || [];
+                typeCenterEl.textContent = todayItems[0] ? (todayItems[0].type || '—') : '—';
+            }
+
+            // update dock on scroll: compute nearest date by center position
+            wrap.addEventListener('scroll', () => {
+                const centerOnViewport = wrap.scrollLeft + wrap.clientWidth/2;
+                const deltaDays = Math.round((centerOnViewport - centerX)/DAY_PX);
+                const d = new Date(Date.now() + deltaDays*MS_PER_DAY);
+                const ds = yyyymmdd(d);
+                renderDock(ds, groups);
+                renderCenterInfo(ds, groups);
+                const typeCenterEl2 = document.getElementById('rulerType');
+                if (typeCenterEl2){
+                    const itemsAtCenter = groups[yyyymmdd(d)] || [];
+                    typeCenterEl2.textContent = itemsAtCenter[0] ? (itemsAtCenter[0].type || '—') : '—';
+                }
+            });
+            window.addEventListener('resize', () => {
+                const oldCenter = wrap.scrollLeft + wrap.clientWidth/2;
+                const newTotal = wrap.clientWidth * 10;
+                timeline.style.minWidth = newTotal + 'px';
+                const newCenterX = newTotal/2;
+                renderRuler(rulerEl, newCenterX, 365, 365);
+                wrap.scrollLeft = newCenterX - (oldCenter - wrap.scrollLeft) - wrap.clientWidth/2;
+            });
+        })();
+    </script>
+</body>
+</html>
+
+

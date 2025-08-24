@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #0f1224; color: #fff; }
+        h1 { margin-bottom: 16px; }
+        form { background: rgba(255,255,255,0.06); padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.15); }
+        .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin-bottom: 10px; align-items: center; }
+        label { color: #e0e0e0; }
+        input[type="date"], input[type="text"], select, textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.25); color: #fff; }
+        textarea { resize: vertical; min-height: 70px; }
+        .error { background: #8b0000; padding: 8px 10px; border-radius: 8px; margin-bottom: 12px; }
+        .actions { text-align: right; }
+        button { padding: 10px 16px; border-radius: 8px; border: 0; background: linear-gradient(135deg, #66d1ff, #8f7aff); color: #fff; font-weight: 600; cursor: pointer; }
+        table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.05); }
+        th, td { border: 1px solid rgba(255,255,255,0.15); padding: 8px 10px; text-align: left; vertical-align: top; }
+        th { background: rgba(255,255,255,0.1); }
+        .pill { padding: 2px 8px; border-radius: 999px; display: inline-block; font-size: 12px; }
+        .pill.deadline { background: #c62828; }
+        .pill.task { background: #6a1b9a; }
+        .pill.activity { background: #2e7d32; }
+        a { color: #66d1ff; }
+    </style>
+</head>
+<body>
+    <h1>Admin · Schedules</h1>
+    <p class="hint">Basic Auth: username <b>gomgom</b>, password <b>gomgom</b>.</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('create_schedule') }}">
+        <div class="row">
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required />
+        </div>
+        <div class="row">
+            <label for="type">Type</label>
+            <select id="type" name="type">
+                <option value="deadline">deadline</option>
+                <option value="task">task</option>
+                <option value="activity" selected>activity</option>
+                <option value="event">event</option>
+                <option value="other">other</option>
+            </select>
+        </div>
+        <div class="row">
+            <label for="desc">Description</label>
+            <input id="desc" name="desc" type="text" placeholder="What happens?" required />
+        </div>
+        <div class="actions">
+            <button type="submit">Add</button>
+        </div>
+    </form>
+
+    <h2>All Items</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for it in items %}
+            <tr>
+                <td>{{ it.date }}</td>
+                <td><span class="pill {{ it.type }}">{{ it.type }}</span></td>
+                <td>{{ it.desc }}</td>
+                <td>
+                    <a href="{{ url_for('edit_schedule', sched_id=it.id) }}">edit</a>
+                    <form method="post" action="{{ url_for('delete_schedule') }}" style="display:inline" onsubmit="return confirm('Delete this item?');">
+                        <input type="hidden" name="id" value="{{ it.id }}" />
+                        <button type="submit">delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not items %}
+            <tr><td colspan="4"><i>No schedules yet</i></td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</body>
+</html>
+
+
