@@ -20,6 +20,15 @@
     </head>
 <body>
     <h1>Registered Users</h1>
+    {% if error %}
+    <div style="background:#8b0000;padding:8px 12px;border-radius:8px;margin:10px 0;">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="{{ url_for('archive_users') }}" style="margin:12px 0; background: rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);">
+        <label for="batch_name">Archive current users to:</label>
+        <input type="text" id="batch_name" name="batch_name" placeholder="users_batch1" style="margin:0 8px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.25); color:#fff;">
+        <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background: linear-gradient(135deg, #66d1ff, #8f7aff); color:#fff; font-weight:600; cursor:pointer;">Archive & Reset</button>
+        <div class="meta">Example: users_batch1. After archiving, current list resets to empty. View archive at <code>/users_batch1</code>.</div>
+    </form>
     <table>
         <thead>
             <tr>
@@ -72,6 +81,15 @@
             {% endfor %}
         </tbody>
     </table>
+    <h2 style="margin-top:22px;">Archives</h2>
+    <ul>
+        {% for a in archives or [] %}
+            <li><a href="/{{ a }}" style="color:#66d1ff;">/{{ a }}</a></li>
+        {% endfor %}
+        {% if not archives %}
+            <li><small>— no archives —</small></li>
+        {% endif %}
+    </ul>
     <p class="meta">Basic Auth: username <b>gomgom</b>, password <b>gomgom</b>.</p>
 </body>
 </html>

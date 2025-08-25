@@ -251,7 +251,14 @@ def register_user():
 @requires_auth
 def admin_users():
     users = load_users()
-    return render_template("users.html", title=f"{APP_TITLE} · Users", users=users)
+    archives = []
+    try:
+        for fname in sorted(os.listdir("data")):
+            if fname.startswith("users_") and fname.endswith(".json") and fname != os.path.basename(USER_DATA_FILE):
+                archives.append(fname[:-5])  # drop .json
+    except FileNotFoundError:
+        pass
+    return render_template("users.html", title=f"{APP_TITLE} · Users", users=users, archives=archives)
 
 
 @app.route("/admin/links", methods=["GET"])
@@ -286,7 +293,7 @@ def create_link():
     existing_ids = {item.get("id") for item in links}
     base_id = link_id
     suffix = 2
-    while link_id in existing_ids or link_id in RESERVED_IDS:
+    while link_id in existing_ids or link_id in RESERVED_IDS or link_id.startswith("users_"):
         link_id = f"{base_id}-{suffix}"
         suffix += 1
 
@@ -389,6 +396,78 @@ def link_detail(link_id):
         if item.get("id") == link_id:
             return render_template("link_detail.html", title=item.get("name") or "Link", item=item)
     return render_template("link_detail.html", title="Not found", item=None), 404
+
+
+# --- Users batch archive ---
+def sanitize_batch_name(raw: str) -> str:
+    if not raw:
+        return ""
+    cleaned_chars = []
+    for ch in raw.strip():
+        if ch.isalnum() or ch in {"_", "-"}:
+            cleaned_chars.append(ch)
+    return "".join(cleaned_chars)[:64]
+
+
+@app.route("/admin/users/archive", methods=["POST"])
+@requires_auth
+def archive_users():
+    batch = (request.form.get("batch_name") or "").strip()
+    batch = sanitize_batch_name(batch)
+    if not batch:
+        users = load_users()
+        archives = []
+        try:
+            for fname in sorted(os.listdir("data")):
+                if fname.startswith("users_") and fname.endswith(".json") and fname != os.path.basename(USER_DATA_FILE):
+                    archives.append(fname[:-5])
+        except FileNotFoundError:
+            pass
+        return render_template("users.html", title=f"{APP_TITLE} · Users", users=users, archives=archives, error="Batch name required"), 400
+
+    # Ensure filename ends with .json and is in data directory
+    archive_file = f"{batch}.json" if batch.startswith("users_") else f"users_{batch}.json"
+    archive_path = os.path.join("data", archive_file)
+    if os.path.exists(archive_path):
+        users = load_users()
+        archives = []
+        try:
+            for fname in sorted(os.listdir("data")):
+                if fname.startswith("users_") and fname.endswith(".json") and fname != os.path.basename(USER_DATA_FILE):
+                    archives.append(fname[:-5])
+        except FileNotFoundError:
+            pass
+        return render_template("users.html", title=f"{APP_TITLE} · Users", users=users, archives=archives, error="Archive already exists"), 400
+
+    current_users = load_users()
+    # Save current users into archive
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            json.dump(current_users, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        users = load_users()
+        return render_template("users.html", title=f"{APP_TITLE} · Users", users=users, error=f"Failed to write archive: {e}"), 500
+
+    # Clear users.json
+    save_users([])
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/users_<batch>")
+def view_users_batch(batch):
+    batch = sanitize_batch_name(batch)
+    if not batch:
+        return redirect(url_for("index"))
+    archive_path = os.path.join("data", f"users_{batch}.json") if not batch.startswith("users_") else os.path.join("data", f"{batch}.json")
+    if not os.path.exists(archive_path):
+        return Response("Not Found", 404)
+    try:
+        with open(archive_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        data = []
+    return render_template("users.html", title=f"{APP_TITLE} · {batch}", users=data)
 
 
 if __name__ == "__main__":
