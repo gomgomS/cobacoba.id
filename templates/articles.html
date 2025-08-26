@@ -127,7 +127,13 @@
 
         function addParagraph(value = '') {
             const container = document.getElementById('blocks');
-            container.appendChild(buildBlock('paragraph', { text: value }));
+            let data = {};
+            if (typeof value === 'object' && value) {
+                data = value;
+            } else if (typeof value === 'string') {
+                data = value.includes('<') ? { html: value } : { text: value };
+            }
+            container.appendChild(buildBlock('paragraph', data));
         }
         function addImage(url = '', source = '') {
             const container = document.getElementById('blocks');
@@ -151,11 +157,37 @@
             root.appendChild(header);
 
             if (type === 'paragraph') {
-                const host = el('div', { class: 'paragraph-editor' });
-                root.appendChild(host);
+                const modeWrap = el('div', { style: 'margin-bottom:6px; display:flex; align-items:center; gap:8px;' }, [
+                    el('span', { class: 'muted' }, ['Format:']),
+                    (() => {
+                        const sel = el('select');
+                        sel.appendChild(el('option', { value: 'text' }, ['Normal Text']));
+                        sel.appendChild(el('option', { value: 'html' }, ['Rich HTML']));
+                        sel.addEventListener('change', () => updateMode(sel.value));
+                        return sel;
+                    })()
+                ]);
+                root.appendChild(modeWrap);
+
+                const htmlHost = el('div', { class: 'paragraph-editor' });
+                const textHost = el('textarea', { placeholder: 'Normal paragraph text' });
+                root.appendChild(htmlHost);
+                root.appendChild(textHost);
+
+                function updateMode(mode) {
+                    root.dataset.mode = mode;
+                    if (mode === 'html') {
+                        htmlHost.style.display = '';
+                        textHost.style.display = 'none';
+                    } else {
+                        htmlHost.style.display = 'none';
+                        textHost.style.display = '';
+                    }
+                }
+
                 setTimeout(() => {
                     try {
-                        const q = new Quill(host, {
+                        const q = new Quill(htmlHost, {
                             theme: 'snow',
                             placeholder: 'Write paragraph... ',
                             modules: {
@@ -170,12 +202,16 @@
                         });
                         if (data && data.html) {
                             q.clipboard.dangerouslyPasteHTML(data.html);
-                        } else if (data && data.text) {
-                            q.setText(data.text);
                         }
                         root._quill = q;
                     } catch (e) { /* ignore */ }
                 }, 0);
+
+                if (data && data.text) textHost.value = data.text;
+                const initialMode = data && data.html ? 'html' : (data && data.text ? 'text' : 'html');
+                modeWrap.querySelector('select').value = initialMode;
+                updateMode(initialMode);
+
             } else if (type === 'image') {
                 const url = el('input', { type: 'text', placeholder: 'Image URL (https://...)' });
                 url.value = data.url || '';
@@ -212,7 +248,8 @@
             for (const child of blocksEl.children) {
                 const type = child.dataset.type;
                 if (type === 'paragraph') {
-                    if (child._quill) {
+                    const mode = child.dataset.mode || 'html';
+                    if (mode === 'html' && child._quill) {
                         const html = child._quill.root.innerHTML;
                         if (!isHtmlEmpty(html)) blocks.push({ type, html });
                     } else {
