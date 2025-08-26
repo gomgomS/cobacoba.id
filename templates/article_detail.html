@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #0f1224; color: #fff; }
+        .container { max-width: 760px; margin: 0 auto; padding: 28px 20px 40px; }
+        h1 { margin-bottom: 10px; }
+        .meta { color: #bdbdbd; font-size: 14px; margin-bottom: 20px; }
+        .article { display: flex; flex-direction: column; gap: 22px; }
+        .para { line-height: 1.8; }
+        .para :where(p, h1, h2, h3, ul, ol) { margin: 0.4em 0; }
+        .img-wrap { text-align: center; }
+        .img-wrap img { max-width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); }
+        .img-src { font-size: 12px; color: #bdbdbd; margin-top: 6px; }
+        pre { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); padding: 16px; border-radius: 10px; overflow-x: auto; position: relative; }
+        code { font-family: Consolas, Monaco, 'Courier New', monospace; color: #e6e6e6; display: block; white-space: pre; }
+        .copy { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.12); border: 0; color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+        a { color: #66d1ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if not item %}
+        <h1>Article not found</h1>
+        {% else %}
+        <h1>{{ item.title }}</h1>
+        {% if item.external_link %}
+            <div class="meta">Related link: <a href="{{ item.external_link }}" target="_blank" rel="noopener">{{ item.external_link }}</a></div>
+        {% endif %}
+
+        <div class="article">
+            {% for blk in item.blocks %}
+                {% if blk.type == 'paragraph' %}
+                    {% if blk.html %}
+                        <div class="para">{{ blk.html | safe }}</div>
+                    {% else %}
+                        <div class="para">{{ blk.text }}</div>
+                    {% endif %}
+                {% elif blk.type == 'image' %}
+                    <div class="img-wrap">
+                        <img src="{{ blk.url }}" alt="image" />
+                        {% if blk.source %}
+                        <div class="img-src">Source: <a href="{{ blk.source }}" target="_blank" rel="noopener">{{ blk.source }}</a></div>
+                        {% endif %}
+                    </div>
+                {% elif blk.type == 'code' %}
+                    <pre>
+                        <button class="copy" onclick="copyCode(this)">Copy</button>
+                        <code>{{ blk.code }}</code>
+                    </pre>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const codeEl = btn.parentElement.querySelector('code');
+            const text = codeEl.innerText;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy', 1200);
+                });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1200); } finally { document.body.removeChild(ta); }
+            }
+        }
+    </script>
+</body>
+</html>
+
+

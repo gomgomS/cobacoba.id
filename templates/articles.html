@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #0f1224; color: #fff; }
+        h1 { margin-bottom: 16px; }
+        form { background: rgba(255,255,255,0.06); padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.15); }
+        .row { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 10px; align-items: center; }
+        label { color: #e0e0e0; }
+        input[type="text"], textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.25); color: #fff; }
+        textarea { resize: vertical; min-height: 70px; }
+        .hint { font-size: 12px; color: #bdbdbd; }
+        .error { background: #8b0000; padding: 8px 10px; border-radius: 8px; margin-bottom: 12px; }
+        .actions { text-align: right; }
+        button { padding: 10px 16px; border-radius: 8px; border: 0; background: linear-gradient(135deg, #66d1ff, #8f7aff); color: #fff; font-weight: 600; cursor: pointer; }
+
+        table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.05); }
+        th, td { border: 1px solid rgba(255,255,255,0.15); padding: 8px 10px; text-align: left; vertical-align: top; }
+        th { background: rgba(255,255,255,0.1); }
+        .wrap { white-space: pre-wrap; }
+        a { color: #66d1ff; }
+        code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 6px; }
+
+        .blocks { border: 1px dashed rgba(255,255,255,0.25); border-radius: 8px; padding: 10px; background: rgba(255,255,255,0.03); }
+        .block { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .block-title { font-weight: 700; font-size: 14px; opacity: 0.9; }
+        .block-actions { display: flex; gap: 6px; }
+        .block-actions button { background: rgba(255,255,255,0.12); padding: 6px 10px; border-radius: 6px; }
+        .add-buttons { display: flex; gap: 8px; }
+        .add-buttons button { background: rgba(102,209,255,0.15); }
+        .muted { color: #bdbdbd; font-size: 12px; }
+        .paragraph-editor { min-height: 140px; }
+    </style>
+</head>
+<body>
+    <h1>Admin · Articles</h1>
+    <p class="hint">Basic Auth: username <b>gomgom</b>, password <b>gomgom</b>.</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('create_article') }}" onsubmit="return serializeBlocksIntoHidden()">
+        <div class="row">
+            <label for="title">Title</label>
+            <input id="title" name="title" type="text" placeholder="Article title" required />
+        </div>
+        <div class="row">
+            <label for="id">Custom ID (optional)</label>
+            <input id="id" name="id" type="text" placeholder="letters, numbers, dash, underscore" />
+        </div>
+        <div class="row">
+            <label for="external_link">External Link (optional)</label>
+            <input id="external_link" name="external_link" type="text" placeholder="https://example.com/read-more" />
+        </div>
+        <div class="row">
+            <label>Blocks</label>
+            <div>
+                <div class="add-buttons" style="margin-bottom:8px;">
+                    <button type="button" onclick="addParagraph()">Add Paragraph</button>
+                    <button type="button" onclick="addImage()">Add Image</button>
+                    <button type="button" onclick="addCode()">Add Code</button>
+                </div>
+                <div id="blocks" class="blocks"></div>
+                <div class="muted">Blocks akan tampil secara vertikal sesuai urutan.</div>
+            </div>
+        </div>
+        <input type="hidden" id="blocks_json" name="blocks_json" />
+        <div class="actions">
+            <button type="submit">Create Article</button>
+        </div>
+        <p class="hint">Public page akan tersedia di <code>/a/&lt;id&gt;</code>. Link eksternal dapat ditampilkan juga di halaman publik.</p>
+    </form>
+
+    <h2>Existing Articles</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Blocks</th>
+                <th>External</th>
+                <th>Public</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for it in items %}
+            <tr>
+                <td><code>{{ it.id }}</code></td>
+                <td>{{ it.title }}</td>
+                <td>{{ (it.blocks or [])|length }}</td>
+                <td class="wrap">{% if it.external_link %}<a href="{{ it.external_link }}" target="_blank" rel="noopener">external</a>{% else %}-{% endif %}</td>
+                <td><a href="/a/{{ it.id }}" target="_blank">/a/{{ it.id }}</a></td>
+                <td>
+                    <a href="{{ url_for('edit_article', article_id=it.id) }}">Edit</a>
+                    <form method="post" action="{{ url_for('delete_article') }}" style="display:inline-block; margin-left:8px;" onsubmit="return confirm('Delete this article?')">
+                        <input type="hidden" name="id" value="{{ it.id }}" />
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not items %}
+            <tr>
+                <td colspan="6"><i>No articles yet</i></td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <script>
+        function el(tag, attrs = {}, children = []) {
+            const e = document.createElement(tag);
+            Object.entries(attrs).forEach(([k,v]) => {
+                if (k === 'class') e.className = v; else if (k === 'dataset') Object.assign(e.dataset, v); else e.setAttribute(k, v);
+            });
+            (Array.isArray(children) ? children : [children]).forEach(c => { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+            return e;
+        }
+
+        function addParagraph(value = '') {
+            const container = document.getElementById('blocks');
+            container.appendChild(buildBlock('paragraph', { text: value }));
+        }
+        function addImage(url = '', source = '') {
+            const container = document.getElementById('blocks');
+            container.appendChild(buildBlock('image', { url: url, source: source }));
+        }
+        function addCode(code = '') {
+            const container = document.getElementById('blocks');
+            container.appendChild(buildBlock('code', { code: code }));
+        }
+
+        function buildBlock(type, data) {
+            const root = el('div', { class: 'block', dataset: { type } });
+            const header = el('div', { class: 'block-header' }, [
+                el('div', { class: 'block-title' }, [type.toUpperCase()]),
+                el('div', { class: 'block-actions' }, [
+                    el('button', { type: 'button', onclick: () => moveBlock(root, -1) }, ['Up']),
+                    el('button', { type: 'button', onclick: () => moveBlock(root, +1) }, ['Down']),
+                    el('button', { type: 'button', onclick: () => root.remove() }, ['Delete']),
+                ])
+            ]);
+            root.appendChild(header);
+
+            if (type === 'paragraph') {
+                const host = el('div', { class: 'paragraph-editor' });
+                root.appendChild(host);
+                setTimeout(() => {
+                    try {
+                        const q = new Quill(host, {
+                            theme: 'snow',
+                            placeholder: 'Write paragraph... ',
+                            modules: {
+                                toolbar: [
+                                    [{ header: [1, 2, 3, false] }],
+                                    [{ size: ['small', false, 'large', 'huge'] }],
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ list: 'ordered' }, { list: 'bullet' }],
+                                    ['link', 'clean']
+                                ]
+                            }
+                        });
+                        if (data && data.html) {
+                            q.clipboard.dangerouslyPasteHTML(data.html);
+                        } else if (data && data.text) {
+                            q.setText(data.text);
+                        }
+                        root._quill = q;
+                    } catch (e) { /* ignore */ }
+                }, 0);
+            } else if (type === 'image') {
+                const url = el('input', { type: 'text', placeholder: 'Image URL (https://...)' });
+                url.value = data.url || '';
+                const src = el('input', { type: 'text', placeholder: 'Source URL (credit)' });
+                src.value = data.source || '';
+                root.appendChild(el('div', {}, [url]));
+                root.appendChild(el('div', { style: 'margin-top:6px;' }, [src]));
+            } else if (type === 'code') {
+                const ta = el('textarea', { placeholder: 'Paste your code here', style: 'min-height:140px; font-family: Consolas, monospace;' });
+                ta.value = (data.code || '');
+                root.appendChild(ta);
+            }
+            return root;
+        }
+
+        function moveBlock(blockEl, dir) {
+            const parent = blockEl.parentElement;
+            const siblings = Array.from(parent.children);
+            const idx = siblings.indexOf(blockEl);
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= siblings.length) return;
+            parent.insertBefore(blockEl, siblings[newIdx + (dir > 0 ? 1 : 0)] || null);
+        }
+
+        function isHtmlEmpty(html) {
+            if (!html) return true;
+            const cleaned = html.replace(/<p><br\s*\/?><\/p>/gi, '').replace(/\s|&nbsp;/g, '');
+            return cleaned.length === 0;
+        }
+
+        function serializeBlocksIntoHidden() {
+            const blocksEl = document.getElementById('blocks');
+            const blocks = [];
+            for (const child of blocksEl.children) {
+                const type = child.dataset.type;
+                if (type === 'paragraph') {
+                    if (child._quill) {
+                        const html = child._quill.root.innerHTML;
+                        if (!isHtmlEmpty(html)) blocks.push({ type, html });
+                    } else {
+                        const ta = child.querySelector('textarea');
+                        const text = ta ? ta.value : '';
+                        if ((text || '').trim()) blocks.push({ type, text });
+                    }
+                } else if (type === 'image') {
+                    const url = child.querySelector('input[type="text"]').value || '';
+                    const src = child.querySelectorAll('input[type="text"]')[1].value || '';
+                    if (url.trim()) blocks.push({ type, url, source: src });
+                } else if (type === 'code') {
+                    const code = child.querySelector('textarea').value || '';
+                    if (code.trim()) blocks.push({ type, code });
+                }
+            }
+            document.getElementById('blocks_json').value = JSON.stringify(blocks);
+            return true;
+        }
+    </script>
+</body>
+</html>
+
+

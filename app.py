@@ -20,6 +20,8 @@ USER_DATA_FILE = "data/users.json"
 LINKS_DATA_FILE = "data/links.json"
 # Schedules data file path
 SCHEDULES_DATA_FILE = "data/schedules.json"
+# Articles data file path
+ARTICLES_DATA_FILE = "data/articles.json"
 
 def load_users():
     """Load users from JSON file"""
@@ -90,6 +92,30 @@ def save_schedules(items):
         return True
     except Exception as e:
         print(f"Error saving schedules: {e}")
+        return False
+
+
+def load_articles():
+    """Load articles from JSON file"""
+    try:
+        if os.path.exists(ARTICLES_DATA_FILE) and os.path.getsize(ARTICLES_DATA_FILE) > 0:
+            with open(ARTICLES_DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        print(f"Error loading articles: {e}")
+        return []
+
+
+def save_articles(items):
+    """Save articles to JSON file"""
+    try:
+        os.makedirs(os.path.dirname(ARTICLES_DATA_FILE), exist_ok=True)
+        with open(ARTICLES_DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(items, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error saving articles: {e}")
         return False
 
 
@@ -468,6 +494,127 @@ def view_users_batch(batch):
     except Exception:
         data = []
     return render_template("users.html", title=f"{APP_TITLE} · {batch}", users=data)
+
+
+# --- Articles CMS ---
+
+def _find_article_index_by_id(items: list, article_id: str):
+    return next((i for i, it in enumerate(items) if (it.get("id") or "") == article_id), None)
+
+
+@app.route("/admin/articles", methods=["GET"])
+@requires_auth
+def admin_articles():
+    items = load_articles()
+    # sort by created desc if available
+    try:
+        items = sorted(items, key=lambda x: x.get("created_ts", 0), reverse=True)
+    except Exception:
+        pass
+    return render_template("articles.html", title=f"{APP_TITLE} · Articles", items=items)
+
+
+@app.route("/admin/articles", methods=["POST"])
+@requires_auth
+def create_article():
+    # Accept JSON or form-urlencoded
+    data = request.get_json() if request.is_json else request.form.to_dict(flat=True)
+    data = data or {}
+    title = (data.get("title") or "").strip()
+    raw_id = (data.get("id") or "").strip()
+    external_link = (data.get("external_link") or "").strip()
+    blocks_json = data.get("blocks_json")
+    if request.is_json:
+        blocks = data.get("blocks") or []
+    else:
+        try:
+            blocks = json.loads(blocks_json) if blocks_json else []
+        except Exception:
+            blocks = []
+
+    if not title:
+        items = load_articles()
+        return render_template("articles.html", title=f"{APP_TITLE} · Articles", items=items, error="Title is required"), 400
+
+    items = load_articles()
+    art_id = sanitize_id(raw_id) or slugify_name(title)
+
+    # Ensure unique ID
+    existing_ids = {item.get("id") for item in items}
+    base_id = art_id
+    suffix = 2
+    while art_id in existing_ids or art_id in RESERVED_IDS or art_id.startswith("users_"):
+        art_id = f"{base_id}-{suffix}"
+        suffix += 1
+
+    new_item = {
+        "id": art_id,
+        "title": title,
+        "external_link": external_link,
+        "blocks": blocks,
+        "created_ts": int(time.time() * 1000),
+        "updated_ts": int(time.time() * 1000),
+    }
+    items.append(new_item)
+    if save_articles(items):
+        if request.is_json:
+            return jsonify({"success": True, "article": new_item}), 201
+        return redirect(url_for("admin_articles"))
+    else:
+        if request.is_json:
+            return jsonify({"error": "Failed to save article"}), 500
+        items = load_articles()
+        return render_template("articles.html", title=f"{APP_TITLE} · Articles", items=items, error="Failed to save article"), 500
+
+
+@app.route("/admin/articles/<article_id>", methods=["GET", "POST"])
+@requires_auth
+def edit_article(article_id):
+    items = load_articles()
+    idx = _find_article_index_by_id(items, article_id)
+    if idx is None:
+        return redirect(url_for("admin_articles"))
+
+    if request.method == "POST":
+        data = request.form.to_dict(flat=True)
+        title = (data.get("title") or "").strip()
+        external_link = (data.get("external_link") or "").strip()
+        blocks_json = data.get("blocks_json")
+        try:
+            blocks = json.loads(blocks_json) if blocks_json else []
+        except Exception:
+            blocks = []
+        if not title:
+            return render_template("articles_edit.html", title=f"{APP_TITLE} · Edit Article", item=items[idx], error="Title is required")
+        items[idx]["title"] = title
+        items[idx]["external_link"] = external_link
+        items[idx]["blocks"] = blocks
+        items[idx]["updated_ts"] = int(time.time() * 1000)
+        if save_articles(items):
+            return redirect(url_for("admin_articles"))
+        return render_template("articles_edit.html", title=f"{APP_TITLE} · Edit Article", item=items[idx], error="Failed to save")
+    return render_template("articles_edit.html", title=f"{APP_TITLE} · Edit Article", item=items[idx])
+
+
+@app.route("/admin/articles/delete", methods=["POST"])
+@requires_auth
+def delete_article():
+    art_id = (request.form.get("id") or "").strip()
+    if not art_id:
+        return redirect(url_for("admin_articles"))
+    items = load_articles()
+    items = [it for it in items if (it.get("id") or "") != art_id]
+    save_articles(items)
+    return redirect(url_for("admin_articles"))
+
+
+@app.route("/a/<article_id>")
+def article_detail(article_id):
+    items = load_articles()
+    for item in items:
+        if (item.get("id") or "") == article_id:
+            return render_template("article_detail.html", title=item.get("title") or "Article", item=item)
+    return render_template("article_detail.html", title="Not found", item=None), 404
 
 
 if __name__ == "__main__":
