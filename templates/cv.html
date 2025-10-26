@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or 'Gomgom Sihotang — Backend Developer' }}</title>
+    <meta name="description" content="Gomgom Sihotang — Backend Developer based in Jakarta. I build scalable backend systems and APIs." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light theme */
+            --bg: #f7f9fc;
+            --surface: #ffffff;
+            --text: #0f172a; /* slate-900 */
+            --muted: #475569; /* slate-600 */
+            --border: rgba(2, 6, 23, 0.08);
+            --primary: #0b2a5a; /* navy */
+            --accent: #12bff2; /* cyan */
+            --accent-2: #ff7a59; /* orange */
+            --chip: rgba(2, 132, 199, 0.10);
+            --shadow: 0 10px 30px rgba(2,6,23,0.12);
+            --ring: rgba(18,191,242,0.35);
+            --code: #0a101f;
+        }
+        [data-theme="dark"] {
+            /* Dark theme */
+            --bg: #0b1220; /* deep navy */
+            --surface: #11182b;
+            --text: #e6edf6;
+            --muted: #96a3b3;
+            --border: rgba(255,255,255,0.08);
+            --primary: #0e2f66;
+            --accent: #20c7ff;
+            --accent-2: #ff8b6b;
+            --chip: rgba(32, 199, 255, 0.12);
+            --shadow: 0 16px 40px rgba(0,0,0,0.35);
+            --ring: rgba(32,199,255,0.28);
+            --code: #0a1326;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: Roboto, Arial, Helvetica, sans-serif; }
+        h1, h2, h3 { font-family: Poppins, Roboto, Arial, Helvetica, sans-serif; margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        img { max-width: 100%; display: block; }
+        .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+        .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow); transition: transform .12s ease, background .2s ease, box-shadow .2s ease; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(0,0,0,0.18); }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #7aa2ff); color: #fff; border: 0; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); }
+        .chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); font-size: 13px; }
+        .muted { color: var(--muted); }
+        .section { padding: 80px 0; position: relative; }
+        .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+        .section h2 { font-size: 28px; letter-spacing: .3px; }
+        .grid { display: grid; gap: 24px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+
+        /* Header/Nav */
+        .site-header { position: sticky; top: 0; z-index: 50; backdrop-filter: saturate(160%) blur(8px); background: linear-gradient(180deg, rgba(11,18,32,.7), rgba(11,18,32,0)); border-bottom: 1px solid var(--border); }
+        .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+        .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: .3px; }
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .nav-links a { color: var(--muted); font-weight: 500; }
+        .nav-links a:hover { color: var(--text); }
+        .theme-toggle { cursor: pointer; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 8px 12px; }
+        .menu-toggle { display: none; cursor: pointer; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 10px; }
+
+        /* Hero */
+        .hero { padding: 100px 0 70px; position: relative; overflow: hidden; }
+        .hero-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 32px; align-items: center; }
+        .hero h1 { font-size: 40px; line-height: 1.2; }
+        .hero p { color: var(--muted); margin-top: 14px; font-size: 18px; }
+        .hero-cta { display: flex; gap: 12px; margin-top: 22px; }
+        .hero-visual { position: relative; height: 320px; border-radius: 18px; overflow: hidden; }
+        .hero-bg { position: absolute; inset: 0; background: radial-gradient(800px 320px at -10% -20%, rgba(32,199,255,.18), transparent 60%), radial-gradient(700px 280px at 110% -10%, rgba(122,162,255,.22), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)); }
+        .hero-code { position: absolute; inset: 0; opacity: .35; mix-blend-mode: screen; background: repeating-linear-gradient(180deg, var(--code), var(--code) 2px, transparent 2px, transparent 20px); animation: float 12s linear infinite; }
+        .hero-illustration { display: none; }
+        .hero-photo-frame { position: absolute; inset: 12px; border-radius: 16px; padding: 3px; background: linear-gradient(135deg, var(--accent), #7aa2ff); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+        .hero-photo { width: 100%; height: 100%; border-radius: 13px; object-fit: cover; display: block; animation: kenburns 22s ease-in-out infinite alternate; }
+        @keyframes kenburns { from { transform: scale(1.02); } to { transform: scale(1.08); } }
+        @keyframes float { to { transform: translateY(-40px); } }
+
+        /* Sections */
+        .about-grid { grid-template-columns: 3fr 2fr; }
+        .about-card { padding: 24px; display: grid; gap: 16px; }
+        .info-list { display: grid; gap: 10px; }
+        .info-list .row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; }
+
+        .timeline { display: grid; gap: 16px; position: relative; }
+        .timeline::before { content: ""; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--accent), #7aa2ff); opacity: .4; pointer-events: none; }
+        .exp { display: grid; grid-template-columns: 72px 1fr; gap: 16px; padding: 18px; margin-left: 28px; position: relative; }
+        .exp .logo { width: 72px; height: 72px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #1f73ff, #20c7ff); position: relative; z-index: 1; }
+        .exp::before { content: ""; position: absolute; left: -16px; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 3px var(--surface), 0 6px 14px rgba(0,0,0,.25); pointer-events: none; z-index: 2; }
+        .exp .logo::after { display: none; }
+        .exp .logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; }
+        .exp h3 { font-size: 18px; }
+        .exp .meta { color: var(--muted); font-size: 14px; margin: 4px 0 8px; }
+        .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+        .client-logos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; align-items: center; }
+        .client-logos img { height: 28px; width: auto; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); padding: 6px; }
+        .client-list { list-style: none; padding: 0; margin: 6px 0 0 0; display: grid; gap: 12px; }
+        .client-list li { display: flex; align-items: flex-start; gap: 12px; }
+        .client-logo { height: 40px; width: auto; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); padding: 6px; box-shadow: var(--shadow); }
+        .client-fallback { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; border: 1px solid var(--border); background: var(--chip); font-weight: 700; font-size: 14px; color: var(--text); box-shadow: var(--shadow); }
+        .client-title { font-weight: 700; }
+        .client-desc { color: var(--muted); line-height: 1.7; margin-top: 2px; }
+
+        .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .skill { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+
+        .education, .certifications { padding: 24px; }
+
+        /* Projects */
+        .projects-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        .project-thumb { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); background: var(--surface); margin-bottom: 8px; }
+        .project-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .project-header h3 { margin: 0; }
+
+        /* Contact */
+        .contact-grid { grid-template-columns: 3fr 2fr; }
+        .contact-card { padding: 24px; }
+        .form-grid { display: grid; gap: 12px; }
+        .input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; }
+        .input:focus { box-shadow: 0 0 0 4px var(--ring); }
+        .links { display: flex; gap: 10px; margin-top: 12px; }
+
+        /* Footer */
+        .site-footer { padding: 26px 0 40px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+
+        /* Reveal animations */
+        .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* WhatsApp Floating Button */
+        .wa-fab { position: fixed; right: 18px; bottom: 18px; z-index: 70; display: inline-flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 999px; background: #25d366; color: #fff; box-shadow: 0 12px 30px rgba(0,0,0,.25); font-weight: 700; border: 0; }
+        .wa-fab:hover { filter: brightness(1.05); transform: translateY(-1px); }
+        .wa-dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; }
+
+        /* Responsive */
+        @media (max-width: 980px) {
+            .hero-grid, .about-grid, .contact-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .hero-visual { height: 240px; }
+            .skills-grid { grid-template-columns: 1fr; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .section { padding: 64px 0; }
+            .container { padding: 0 18px; }
+            .client-list li { flex-direction: row; }
+            .client-logo { height: 36px; }
+            body { overflow-x: hidden; }
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle { display: inline-flex; align-items: center; }
+            .nav-links { position: fixed; top: 56px; left: 0; right: 0; padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .25s ease, opacity .2s ease; z-index: 60; }
+            .nav-links.open { max-height: 70vh; opacity: 1; }
+        }
+
+        @media (max-width: 640px) {
+            .hero-visual { height: 220px; }
+            .hero-cta { flex-direction: column; align-items: stretch; }
+            .hero-cta .btn { width: 100%; justify-content: center; }
+            .timeline::before { left: 8px; }
+            .exp { grid-template-columns: 56px 1fr; margin-left: 22px; }
+            .exp .logo { width: 56px; height: 56px; }
+            .exp::before { left: -12px; }
+            .client-logo { height: 32px; }
+            /* Selected clients: make text full-width, tight left, minimal gaps */
+            .client-list { gap: 8px; }
+            .client-list li { gap: 10px; align-items: flex-start; }
+            .client-list li > div { flex: 1; min-width: 0; }
+            .client-title { margin: 0; }
+            .client-desc { margin: 0; line-height: 1.55; white-space: normal; display: inline; }
+            .section { padding: 52px 0; }
+        }
+    </style>
+    <style>
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container nav">
+            <div class="brand">
+                <span style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1f73ff,#20c7ff);display:inline-block;"></span>
+                <span>Gomgom</span>
+                <button id="menuToggle" class="menu-toggle" aria-label="Open menu">☰</button>
+                        </div>
+            <nav id="navLinks" class="nav-links">
+                <a href="#about">About</a>
+                <a href="#experience">Experience</a>
+                <a href="#skills">Skills</a>
+                <a href="#certifications">Certifications</a>
+                <a href="#education">Education</a>
+                <a href="https://wa.me/6289512345592?text=Halo%20Gomgom%2C%20saya%20tertarik%20diskusi%20%2F%20butuh%20bantuan%20pengembangan%20web." target="_blank" rel="noopener">WhatsApp</a>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">🌓</button>
+            </nav>
+                        </div>
+    </header>
+
+    <main>
+        <!-- Hero -->
+        <section id="hero" class="hero">
+            <div class="container hero-grid">
+                <div class="reveal">
+                    <h1>Hi, I’m <span style="color:var(--accent)">Gomgom</span> — Backend Developer</h1>
+                    <p>hai yall👋, saya spesialis di backend development, juga berpengalaman di frontend dan sedikit di mobile apps.
+                        Butuh bantuan, diskusi, atau jasa pembuatan web? Hubungi saya!</p>
+                    <div class="hero-cta">
+                        <a href="#experience" class="btn btn-primary">View My Work</a>
+                        <a href="https://wa.me/6289512345592?text=Halo%20Gomgom%2C%20saya%20tertarik%20diskusi%20%2F%20butuh%20bantuan%20pengembangan%20web." class="btn btn-ghost" target="_blank" rel="noopener">WhatsApp Me</a>
+                    </div>
+                </div>
+                <div class="hero-visual card reveal" aria-hidden="true">
+                    <div class="hero-bg"></div>
+                    <div class="hero-code"></div>
+                    <div class="hero-photo-frame">
+                        <img class="hero-photo" alt="Gomgom" src="{{ url_for('static', filename='img/me.jpeg') }}" />
+                    </div>
+                        </div>
+                        </div>
+        </section>
+
+        <!-- About -->
+        <section id="about" class="section">
+            <div class="container grid about-grid">
+                <div class="card about-card reveal">
+                    <h2>About</h2>
+                    <p class="muted" style="margin-top:10px; line-height:1.7;">
+                        Saya seorang programmer dengan pengalaman lebih dari 5 tahun, aktif berkarier di dunia teknologi sejak lulus pada tahun 2021.
+                        Buat teman-teman yang ingin berdiskusi atau konsultasi seputar karier di bidang tech — mulai dari memilih arah karier, memahami teknologi yang sedang tren, hingga bimbingan untuk skripsi — saya siap membantu dengan biaya yang ramah di kantong.
+                        
+                        Saya juga menerima jasa pembuatan website dan pengembangan sistem yang bisa disesuaikan dengan kebutuhan bisnis atau personal project Anda.
+Jangan ragu untuk menghubungi saya jika ingin tahu lebih lanjut!
+                    </p>
+                    <div class="badges" style="margin-top:6px;">
+                        <span class="chip">API Design</span>
+                        <span class="chip">Scalability</span>
+                        <span class="chip">Security</span>
+                        </div>
+                    </div>
+                <div class="card about-card reveal">
+                    <h2>Details</h2>
+                    <div class="info-list" style="margin-top:10px;">
+                        <div class="row"><span class="muted">Location</span><span>Jakarta, Indonesia</span></div>
+                        <div class="row"><span class="muted">Email</span><span><a href="mailto:taro.sihotang@gmail.com">taro.sihotang@gmail.com</a></span></div>
+                        <div class="row"><span class="muted">Phone</span><span><a href="https://wa.me/6289512345592" target="_blank" rel="noopener">089512345592</a></span></div>
+                        <div class="row"><span class="muted">LinkedIn</span><span><a href="https://www.linkedin.com/in/gomgoms" target="_blank" rel="noopener">linkedin.com/in/gomgoms</a></span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Experience -->
+        <section id="experience" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Experience</h2>
+                </div>
+                    <div class="timeline">
+                    <div class="card exp reveal">
+                        <div class="logo"><img src="{{ url_for('static', filename='img/blipcom.jpeg') }}" alt="Blipcom" /></div>
+                        <div>
+                            <h3>Back End Developer — Blipcom</h3>
+                            <div class="meta">Apr 2022 – Present · Jakarta Metropolitan Area</div>
+                            <ul style="margin: 8px 0 0 18px; line-height: 1.7;">
+                                <li>Develop mobile APIs with Python (Flask Framework – Pytavia)</li>
+                                <li>Build client websites backend</li>
+                            </ul>
+                            <div class="badges">
+                                <span class="chip">Flask (Pytavia)</span>
+                                <span class="chip">Python</span>
+                                <span class="chip">MongoDB</span>
+                                <span class="chip">Jinja</span>
+                                <span class="chip">Ubuntu</span>
+                                <span class="chip">ChartJS</span>
+                                <span class="chip">jQuery</span>
+                                <span class="chip">PHP</span>
+                                <span class="chip">MySQL</span>
+                            </div>
+                            <div class="muted" style="margin-top:12px; font-weight:600; letter-spacing:.2px;">Selected clients</div>
+                            <ul class="client-list">
+                                <li>
+                                    <img class="client-logo" src="{{ url_for('static', filename='img/mrt-jakarta.png') }}" alt="MRT Jakarta" />
+                                    <div>
+                                        <div class="client-title">MRT Indonesia — CRM and Ticketing Backend Systems</div>
+                                        <div class="client-desc">A robust backend platform that powers customer relationship management (CRM) and ticketing workflows. It handles promotional program configurations, discount routing logic, and dynamic ticketing API processes — enabling seamless integration between marketing campaigns, customer requests, and automated ticket resolution. The system ensures efficient routing, escalation, and reporting for both promotional and support tickets.</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <img class="client-logo" src="{{ url_for('static', filename='img/djatgo.png') }}" alt="DJATGO" />
+                                    <div>
+                                        <div class="client-title">DJATGO</div>
+                                        <div class="client-desc">A customized internal management system built with REST APIs to streamline company operations and meet specific client requirements. The platform supports flexible module customization, process automation, and seamless data integration across departments. Developed with a focus on continuous UI/UX improvement, DJATGO evolves alongside client feedback — ensuring optimized workflows, improved accessibility, and a modern, user-friendly interface for internal teams.</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <img class="client-logo" src="{{ url_for('static', filename='img/mnc-bank.png') }}" alt="MNC Bank" />
+                                    <div>
+                                        <div class="client-title">MNC Bank</div>
+                                        <div class="client-desc">Classified engagement.</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <img class="client-logo" src="{{ url_for('static', filename='img/lynkid.jpeg') }}" alt="Lynk.id" />
+                                    <div>
+                                        <div class="client-title">LYNKID</div>
+                                        <div class="client-desc">A full-stack platform encompassing both backend core services and frontend interfaces. It provides the foundation for user management, authentication, and data processing while supporting dynamic API integrations and scalable module development. Designed for flexibility and growth, LYNKID combines robust backend architecture with an intuitive frontend experience — continuously enhanced to meet evolving business needs and deliver seamless performance across all layers of the system.</div>
+                                    </div>
+                                </li>
+                            </ul>
+                    </div>
+                </div>
+
+                    <div class="card exp reveal">
+                        <div class="logo"><img src="{{ url_for('static', filename='img/barantum.png') }}" alt="Barantum" /></div>
+                        <div>
+                            <h3>Full Stack Developer — Barantum.com</h3>
+                            <div class="meta">Apr 2021 – Apr 2022</div>
+                            <ul style="margin: 8px 0 0 18px; line-height: 1.7;">
+                                <li>Developed CRM system using Lumen (PHP) and Vue.js</li>
+                                <li>Built REST APIs and integrated with external APIs</li>
+                                <li>Designed UX and handled full system flow</li>
+                            </ul>
+                            <div class="badges">
+                                <span class="chip">PHP (Lumen)</span>
+                                <span class="chip">Vue</span>
+                                <span class="chip">JavaScript</span>
+                                <span class="chip">LDAP</span>
+                                <span class="chip">ElasticSearch</span>
+                                <span class="chip">Bootstrap</span>
+                                <span class="chip">MySQL</span>
+                </div>
+            </div>
+        </div>
+
+                    <div class="card exp reveal">
+                        <div class="logo"><img src="{{ url_for('static', filename='img/unai.jpeg') }}" alt="Universitas Advent Indonesia" /></div>
+                            <div>
+                            <h3>Web Developer — Universitas Advent Indonesia</h3>
+                            <div class="meta">May 2020 – Jul 2020</div>
+                            <ul style="margin: 8px 0 0 18px; line-height: 1.7;">
+                                <li>Contributed to Registration System development</li>
+                                </ul>
+                            <div class="badges">
+                                <span class="chip">Laravel</span>
+                                <span class="chip">jQuery</span>
+                                <span class="chip">MySQL</span>
+                            </div>
+                    </div>
+                </div>
+
+                    <div class="card exp reveal">
+                        <div class="logo"><img src="{{ url_for('static', filename='img/unai.jpeg') }}" alt="Universitas Advent Indonesia" /></div>
+                        <div>
+                            <h3>Library Technical Assistant — Universitas Advent Indonesia</h3>
+                            <div class="meta">Aug 2018 – May 2019</div>
+                        </div>
+                            </div>
+
+                    <div class="card exp reveal">
+                        <div class="logo"><img src="{{ url_for('static', filename='img/unai.jpeg') }}" alt="Universitas Advent Indonesia" /></div>
+                            <div>
+                            <h3>Student Affairs Department — Universitas Advent Indonesia</h3>
+                            <div class="meta">Aug 2017 – May 2018</div>
+                        </div>
+                    </div>
+                            </div>
+                        </div>
+        </section>
+
+        <!-- Side Projects -->
+        <section id="projects" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Side Projects</h2>
+                </div>
+                <div class="projects-grid">
+                    <div class="card reveal" style="padding:20px;">
+                        <div class="project-header">
+                            <img class="client-logo" src="{{ url_for('static', filename='img/kartbes.png') }}" alt="Kartbes logo" />
+                            <h3>Kartbes.com</h3>
+                        </div>
+                        <div class="muted" style="margin-bottom:10px;">CTO — Finance consultant platform</div>
+                        <div class="badges">
+                            <span class="chip">Leadership</span>
+                            <span class="chip">Architecture</span>
+                            <span class="chip">APIs</span>
+                    </div>
+                </div>
+                    <div class="card reveal" style="padding:20px;">
+                        <div class="project-header">
+                            <img class="client-logo" src="{{ url_for('static', filename='img/astro.png') }}" alt="Comes.id" />
+                            <h3>Comes.id</h3>
+                        </div>
+                        <div class="muted" style="margin-bottom:10px;">Founder — Dating app</div>
+                        <div class="badges">
+                            <span class="chip">Product</span>
+                            <span class="chip">Backend</span>
+                            <span class="chip">Mobile</span>
+                </div>
+            </div>
+                    <div class="card reveal" style="padding:20px;">
+                        <div class="project-header">
+                            <img class="client-logo" src="{{ url_for('static', filename='img/TheEnrichLogo2.png') }}" alt="The Enrich City" />
+                            <h3>Kitabuat.web.id</h3>
+                        </div>
+                        <div class="muted" style="margin-bottom:10px;">Freelance project</div>
+                        <div class="badges">
+                            <span class="chip">Full‑stack</span>
+                            <span class="chip">Web</span>
+                    </div>
+                </div>
+                    <div class="card reveal" style="padding:20px;">
+                        <div class="project-header">
+                            <img class="client-logo" src="{{ url_for('static', filename='img/astro.png') }}" alt="Lagu Sion" />
+                            <h3>Lagu Sion</h3>
+                        </div>
+                        <div class="muted" style="margin-bottom:10px;">Mobile app</div>
+                        <div class="badges">
+                            <span class="chip">Android</span>
+                            <span class="chip">Flutter/Native</span>
+                    </div>
+                </div>
+                    <div class="card reveal" style="padding:20px;">
+                        <div class="project-header">
+                            <img class="client-logo" src="{{ url_for('static', filename='img/TheEnrichLogo2.png') }}" alt="The Enrich City" />
+                            <h3>TheEnrichCity.com</h3>
+                        </div>
+                        <div class="muted" style="margin-bottom:10px;">Company profile website</div>
+                        <div class="badges">
+                            <span class="chip">Compro</span>
+                            <span class="chip">CMS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </section>
+
+        <!-- Skills -->
+        <section id="skills" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Skills</h2>
+                </div>
+                <div class="card" style="padding: 24px;" >
+                    <div class="skills-grid reveal">
+                        <div class="skill">Python (Programming Language)</div>
+                        <div class="skill">Android</div>
+                        <div class="skill">Backend API Development</div>
+                        <div class="skill">Flask / Pytavia Framework</div>
+                        <div class="skill">PHP (Lumen / Laravel)</div>
+                        <div class="skill">MongoDB / MySQL</div>
+                        <div class="skill">JavaScript / Vue / jQuery</div>
+                        <div class="skill">HTML / CSS / Bootstrap</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+
+        <!-- Certifications -->
+        <section id="certifications" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Certifications</h2>
+                </div>
+                <div class="card certifications reveal">
+                    <div>
+                        <div>• Microsoft Technology Associate (MTA): Software Development Fundamentals</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Education -->
+        <section id="education" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Education</h2>
+                </div>
+                <div class="card education reveal">
+                    <div><strong>Universitas Advent Indonesia</strong> — Bachelor’s Degree in Information Technology (2017–2021)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact -->
+        <!-- <section id="contact" class="section">
+            <div class="container grid contact-grid">
+                <div class="card contact-card reveal">
+                    <h2>Contact</h2>
+                    <form id="contactForm" class="form-grid" autocomplete="on">
+                        <input class="input" type="text" name="name" placeholder="Name" required />
+                        <input class="input" type="email" name="email" placeholder="Email" required />
+                        <textarea class="input" name="message" rows="5" placeholder="Message" required></textarea>
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" class="btn btn-primary">Send</button>
+                            <a class="btn btn-ghost" href="mailto:taro.sihotang@gmail.com">Email</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card contact-card reveal">
+                    <h2>Also find me</h2>
+                    <div class="links">
+                        <a class="btn" href="https://www.linkedin.com/in/gomgoms" target="_blank" rel="noopener">LinkedIn</a>
+                        <a class="btn" href="mailto:taro.sihotang@gmail.com">Email</a>
+                        <a class="btn" href="https://wa.me/6287762980338" target="_blank" rel="noopener">WhatsApp</a>
+                    </div>
+        </div>
+    </div>
+        </section> -->
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            © 2025 Gomgom 
+        </div>
+    </footer>
+
+    <a class="wa-fab" href="https://wa.me/6289512345592?text=Halo%20Gomgom%2C%20saya%20tertarik%20diskusi%20%2F%20butuh%20bantuan%20pengembangan%20web." target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+        <span class="wa-dot"></span>
+        <span>Chat WhatsApp</span>
+    </a>
+
+    <script>
+        // Theme toggle with persistence
+        (function() {
+            var root = document.documentElement;
+            var toggle = document.getElementById('themeToggle');
+            var saved = localStorage.getItem('theme');
+            if (saved) { root.setAttribute('data-theme', saved); }
+            toggle.addEventListener('click', function() {
+                var curr = root.getAttribute('data-theme');
+                var next = curr === 'dark' ? 'light' : 'dark';
+                root.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+            });
+        })();
+
+        // Mobile nav toggle (prevents horizontal swipe by keeping content fixed width)
+        (function() {
+            var btn = document.getElementById('menuToggle');
+            var links = document.getElementById('navLinks');
+            if (!btn || !links) return;
+            btn.addEventListener('click', function() {
+                links.classList.toggle('open');
+            });
+            // Close menu when clicking a link
+            links.querySelectorAll('a').forEach(function(a) {
+                a.addEventListener('click', function() { links.classList.remove('open'); });
+            });
+        })();
+
+        // Reveal on scroll
+        (function() {
+            var els = document.querySelectorAll('.reveal');
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(e) {
+                    if (e.isIntersecting) { e.target.classList.add('visible'); }
+                });
+            }, { threshold: 0.12 });
+            els.forEach(function(el) { obs.observe(el); });
+        })();
+
+        // Contact form -> mailto fallback
+        (function() {
+            var form = document.getElementById('contactForm');
+            form.addEventListener('submit', function(ev) {
+                ev.preventDefault();
+                var data = new FormData(form);
+                var name = encodeURIComponent(data.get('name'));
+                var email = encodeURIComponent(data.get('email'));
+                var message = encodeURIComponent(data.get('message'));
+                var subject = 'Portfolio Contact — ' + name;
+                var body = 'From: ' + name + ' (' + email + ')%0A%0A' + message;
+                window.location.href = 'mailto:taro.sihotang@gmail.com?subject=' + subject + '&body=' + body;
+            });
+        })();
+    </script>
+</body>
+</html>
+
+

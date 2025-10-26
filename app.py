@@ -22,6 +22,7 @@ LINKS_DATA_FILE = "data/links.json"
 SCHEDULES_DATA_FILE = "data/schedules.json"
 # Articles data file path
 ARTICLES_DATA_FILE = "data/articles.json"
+CV_FILE = "mycv"
 
 def load_users():
     """Load users from JSON file"""
@@ -206,7 +207,24 @@ RESERVED_IDS = {"admin", "api", "game", "static", "schedule", ""}
 
 @app.route("/")
 def index():
-    return render_template("index.html", title=APP_TITLE)
+    # Render CV from text file
+    try:
+        with open(CV_FILE, 'r', encoding='utf-8') as f:
+            cv_text = f.read()
+    except Exception:
+        cv_text = ""
+    meta = parse_cv_meta(cv_text)
+    return render_template(
+        "cv.html",
+        title=f"{APP_TITLE} · CV",
+        cv_text=cv_text,
+        cv_meta=meta,
+    )
+
+
+@app.route("/apply-class")
+def apply_class():
+    return render_template("index.html", title=f"{APP_TITLE} · Apply Class")
 
 
 
@@ -494,6 +512,123 @@ def view_users_batch(batch):
     except Exception:
         data = []
     return render_template("users.html", title=f"{APP_TITLE} · {batch}", users=data)
+
+
+def parse_cv_meta(cv_text: str) -> Dict[str, Any]:
+    """Lightweight parsing of plain-text CV into basic meta fields for UI."""
+    lines = [ln.strip() for ln in (cv_text or "").splitlines()]
+    lines = [ln for ln in lines if ln]
+    data: Dict[str, Any] = {
+        "name": "",
+        "title": "",
+        "location": "",
+        "email": "",
+        "phone": "",
+        "linkedin": "",
+        "skills": [],
+        "certifications": [],
+        "experiences": [],
+    }
+
+    # Contact block
+    try:
+        cidx = next(i for i, ln in enumerate(lines) if ln.lower() == "contact")
+        if cidx is not None:
+            # location is first non-empty after contact
+            for j in range(cidx + 1, min(cidx + 6, len(lines))):
+                if not data["location"] and lines[j] and "@" not in lines[j] and "linkedin.com" not in lines[j].lower():
+                    data["location"] = lines[j]
+                    break
+    except StopIteration:
+        pass
+
+    # Simple detectors
+    for ln in lines:
+        low = ln.lower()
+        if ("@" in ln) and not data["email"]:
+            data["email"] = ln
+        if ("linkedin.com" in low) and not data["linkedin"]:
+            data["linkedin"] = ln if ln.startswith("http") else f"https://{ln}" if not ln.startswith("www.") else f"https://{ln}"
+        if any(ch.isdigit() for ch in ln) and ("mobile" in low or ln.replace(" ", "").replace("+", "").replace("-", "").isdigit()) and not data["phone"]:
+            data["phone"] = ln
+
+    # Name and title heuristics
+    dev_idx = next((i for i, ln in enumerate(lines) if any(w in ln.lower() for w in ["developer", "engineer", "programmer"])) , None)
+    if dev_idx is not None and dev_idx > 0:
+        data["title"] = lines[dev_idx]
+        data["name"] = lines[dev_idx - 1]
+    else:
+        # fallback: first non Contact/section line with spaces
+        data["name"] = next((ln for ln in lines if " " in ln and ln.lower() not in {"contact", "top skills", "certifications", "experience", "education"}), "")
+
+    # Skills
+    try:
+        sidx = next(i for i, ln in enumerate(lines) if ln.lower() == "top skills")
+        eidx = next((i for i, ln in enumerate(lines[sidx+1:], start=sidx+1) if ln.lower() in {"certifications", "experience", "education"}), len(lines))
+        data["skills"] = [ln for ln in lines[sidx+1:eidx] if ln]
+    except StopIteration:
+        pass
+
+    # Certifications
+    try:
+        cidx = next(i for i, ln in enumerate(lines) if ln.lower() == "certifications")
+        eidx = next((i for i, ln in enumerate(lines[cidx+1:], start=cidx+1) if ln.lower() in {"experience", "education"} or ln == data["name"]), len(lines))
+        data["certifications"] = [ln for ln in lines[cidx+1:eidx] if ln]
+    except StopIteration:
+        pass
+
+    # Experiences (greedy, simple heuristic)
+    try:
+        ex_start = next(i for i, ln in enumerate(lines) if ln.lower() == "experience") + 1
+        ex_end = next((i for i, ln in enumerate(lines[ex_start:], start=ex_start) if ln.lower() in {"education", "skills", "top skills", "certifications"}), len(lines))
+        i = ex_start
+        while i < ex_end:
+            company = lines[i] if i < ex_end else ""
+            role = lines[i+1] if i+1 < ex_end else ""
+            dates_line = lines[i+2] if i+2 < ex_end else ""
+            loc_line = lines[i+3] if i+3 < ex_end else ""
+
+            # Validate minimal structure
+            if not company or ":" in company.lower():
+                i += 1
+                continue
+            # Ensure dates look like a range
+            if "-" not in dates_line and "Present" not in dates_line:
+                # shift if needed
+                i += 1
+                continue
+
+            bullets = []
+            j = i + 4
+            while j < ex_end:
+                ln = lines[j]
+                if ln.lower() in {"project key roles", "technologies"}:
+                    j += 1
+                    continue
+                # bullet lines
+                if ln.startswith("-"):
+                    bullets.append(ln.lstrip("- "))
+                    j += 1
+                    continue
+                # next entry boundary heuristic: short title-case line without colon and not starting with '-'
+                if (len(ln) < 60 and ":" not in ln and not ln.startswith("-") and not any(k in ln.lower() for k in ["month", "year", "present", "area"])):
+                    break
+                # otherwise skip lines within description
+                j += 1
+
+            data["experiences"].append({
+                "company": company,
+                "role": role,
+                "dates": dates_line,
+                "location": loc_line if ("area" in loc_line.lower() or "indonesia" in loc_line.lower()) else "",
+                "bullets": bullets,
+            })
+
+            i = j
+    except StopIteration:
+        pass
+
+    return data
 
 
 # --- Articles CMS ---
